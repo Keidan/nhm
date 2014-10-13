@@ -10,11 +10,13 @@
 #include <linux/skbuff.h>
 #include <linux/ip.h>
 #include <linux/udp.h>
+#include "nhm_sysfs.h"
+
 
 #define DRIVER_VERSION "1.0"
 #define DRIVER_AUTHOR  "Keidan"
 #define DRIVER_DESC    "Netfilter Hook Module"
-#define DRIVER_LICENSE "GPLv3"
+#define DRIVER_LICENSE "GPL"
 
 /* Parameters */
 static bool debug = 0;
@@ -24,6 +26,28 @@ struct sk_buff *sock_buff;
 struct iphdr *ip_header;
 struct udphdr *udp_header;
 static struct nf_hook_ops nfho;
+
+
+static int n = 6;
+
+
+
+static ssize_t sc_show(struct kobject *kobj, 
+			struct kobj_attribute *attr, char *buf) {
+  return sprintf(buf, "%d\n", n);
+}
+
+static ssize_t sc_store(struct kobject *kobj, 
+			struct kobj_attribute *attr, const char *buf, size_t count) {
+  sscanf(buf, "%du", &n);
+  return count;
+}
+
+
+static struct kobj_attribute sc_attrb = 
+	__ATTR(fs_debug, 0666, sc_show, sc_store);
+
+
 
 /* Netfilter hook */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
@@ -53,11 +77,13 @@ static unsigned int hook_func(unsigned int hooknum, struct sk_buff *skb, const s
 	return NF_ACCEPT;
     }
   }
-} 
+}
+
 
 
 /* Module init */
 static int __init init_nhm(void) {
+  int ret;
   nfho.hook = hook_func;
   nfho.hooknum = 1;
   nfho.pf = PF_INET;
@@ -65,12 +91,24 @@ static int __init init_nhm(void) {
   nf_register_hook(&nfho);
   if(debug)
     printk(KERN_INFO "[NHM] Successfully inserted protocol module into kernel.\n");
+
+  /* create a dir in sys/ */
+  if (nhm_sysfs_link("nhm")) return -ENOMEM;
+	
+  /* create a attribute file in nhm */
+  if ((ret = nhm_sysfs_add_file(sc_attrb)))
+    goto failed;
   return 0;
+	
+failed:
+  nhm_sysfs_unlink();
+  return ret;
 }
 
 /* Module cleanup */
 static void __exit cleanup_nhm(void) {
   nf_unregister_hook(&nfho);
+  nhm_sysfs_unlink();
   if(debug)
     printk(KERN_INFO "[NHM] Successfully unloaded protocol module.\n");
 }
