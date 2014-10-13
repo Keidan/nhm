@@ -1,10 +1,10 @@
 // 'nhm' netfilter hooks
 
 #include <linux/module.h>	/* Needed by all modules */
-#include <linux/param.h>
 #include <linux/kernel.h>	/* Needed for KERN_INFO */
 #include <linux/init.h>		/* Needed for the macros */
 #include <linux/version.h>	/* Needed for KERNEL_VERSION + LINUX_VERSION_CODE */
+#include <linux/moduleparam.h>  /* Needed by params */
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/skbuff.h>
@@ -16,8 +16,10 @@
 #define DRIVER_DESC    "Netfilter Hook Module"
 #define DRIVER_LICENSE "GPLv3"
 
-#define DEBUG 1
+/* Parameters */
+static bool debug = 0;
 
+/* Global variables */
 struct sk_buff *sock_buff;
 struct iphdr *ip_header;
 struct udphdr *udp_header;
@@ -39,14 +41,14 @@ static unsigned int hook_func(unsigned int hooknum, struct sk_buff *skb, const s
     else { 
       if (ip_header->protocol == IPPROTO_UDP) {
 	udp_header = (struct udphdr *)(skb_transport_header(sock_buff)+sizeof(struct iphdr));
-#if DEBUG > 0
-	printk(KERN_INFO "[NHM] DEBUG: nh: 0p%p\n", skb_network_header(sock_buff));
-	printk(KERN_INFO "[NHM] DEBUG: mh: 0p%p\n", skb_mac_header(sock_buff));
-	printk(KERN_INFO "[NHM] DEBUG: From IP address: %d.%d.%d.%dn", ip_header->saddr & 0x000000FF, (ip_header->saddr & 0x0000FF00) >> 8, (ip_header->saddr & 0x00FF0000) >> 16, (ip_header->saddr & 0xFF000000) >> 24);
-	printk(KERN_INFO "[NHM] DEBUG: Ports s:%d, d:%d\n", udp_header->source, udp_header->dest);
-#endif
+	if(debug) {
+	  printk(KERN_INFO "[NHM] DEBUG: nh: 0p%p\n", skb_network_header(sock_buff));
+	  printk(KERN_INFO "[NHM] DEBUG: mh: 0p%p\n", skb_mac_header(sock_buff));
+	  printk(KERN_INFO "[NHM] DEBUG: From IP address: %d.%d.%d.%dn", ip_header->saddr & 0x000000FF, (ip_header->saddr & 0x0000FF00) >> 8, (ip_header->saddr & 0x00FF0000) >> 16, (ip_header->saddr & 0xFF000000) >> 24);
+	  printk(KERN_INFO "[NHM] DEBUG: Ports s:%d, d:%d\n", udp_header->source, udp_header->dest);
+	}
 	/* Callback function here*/
-	return NF_DROP;
+	return NF_ACCEPT;//NF_DROP;
       } else
 	return NF_ACCEPT;
     }
@@ -61,24 +63,26 @@ static int __init init_nhm(void) {
   nfho.pf = PF_INET;
   nfho.priority = NF_IP_PRI_FIRST;
   nf_register_hook(&nfho);
-#if DEBUG > 0
-  printk(KERN_INFO "[NHM] Successfully inserted protocol module into kernel.\n");
-#endif
+  if(debug)
+    printk(KERN_INFO "[NHM] Successfully inserted protocol module into kernel.\n");
   return 0;
 }
 
 /* Module cleanup */
 static void __exit cleanup_nhm(void) {
   nf_unregister_hook(&nfho);
-#if DEBUG > 0
-  printk(KERN_INFO "[NHM] Successfully unloaded protocol module.\n");
-#endif
+  if(debug)
+    printk(KERN_INFO "[NHM] Successfully unloaded protocol module.\n");
 }
 
-/* module infos */
+/* module parameters */
+module_param(debug, bool, 0);
+MODULE_PARM_DESC(debug, "Enable extra logs.");
+/* module functions */
 module_init(init_nhm);
 module_exit(cleanup_nhm);
 
+/* module infos */
 MODULE_VERSION(DRIVER_VERSION);
 MODULE_LICENSE(DRIVER_LICENSE);
 MODULE_AUTHOR(DRIVER_AUTHOR);
