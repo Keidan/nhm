@@ -16,7 +16,7 @@
 #define DRIVER_DESC    "Netfilter Hook Module"
 #define DRIVER_LICENSE "GPLv3"
 
-#define DEBUG 0
+#define DEBUG 1
 
 struct sk_buff *sock_buff;
 struct iphdr *ip_header;
@@ -43,7 +43,7 @@ static unsigned int hook_func(unsigned int hooknum, struct sk_buff *skb, const s
 	printk(KERN_INFO "[NHM] DEBUG: nh: 0p%p\n", skb_network_header(sock_buff));
 	printk(KERN_INFO "[NHM] DEBUG: mh: 0p%p\n", skb_mac_header(sock_buff));
 	printk(KERN_INFO "[NHM] DEBUG: From IP address: %d.%d.%d.%dn", ip_header->saddr & 0x000000FF, (ip_header->saddr & 0x0000FF00) >> 8, (ip_header->saddr & 0x00FF0000) >> 16, (ip_header->saddr & 0xFF000000) >> 24);
-	printfk(KERN_INFO "[NHM] DEBUG: Ports s:%d, d:%d\n", udp_header->source, udp_header->dest);
+	printk(KERN_INFO "[NHM] DEBUG: Ports s:%d, d:%d\n", udp_header->source, udp_header->dest);
 #endif
 	/* Callback function here*/
 	return NF_DROP;
