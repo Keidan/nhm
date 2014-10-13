@@ -1,5 +1,4 @@
 // 'nhm' netfilter hooks
-// 'nhm' is a FireWall As Kernel Module
 
 #include <linux/module.h>	/* Needed by all modules */
 #include <linux/param.h>
@@ -12,7 +11,7 @@
 #include <linux/ip.h>
 #include <linux/udp.h>
 
-#define DRIVER_VERSION    "1.0"
+#define DRIVER_VERSION "1.0"
 #define DRIVER_AUTHOR  "Keidan"
 #define DRIVER_DESC    "Netfilter Hook Module"
 #define DRIVER_LICENSE "GPLv3"
@@ -25,7 +24,7 @@ struct udphdr *udp_header;
 static struct nf_hook_ops nfho;
 
 /* Netfilter hook */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
 static unsigned int hook_func(const struct nf_hook_ops *ops, struct sk_buff *skb, const struct net_device *in, const struct net_device *out, int (*okfn)(struct sk_buff *)) {
 #else
 static unsigned int hook_func(unsigned int hooknum, struct sk_buff *skb, const struct net_device *in, const struct net_device *out, int (*okfn)(struct sk_buff *)) {
