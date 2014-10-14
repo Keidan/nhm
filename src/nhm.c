@@ -43,11 +43,13 @@ static ssize_t sc_store(struct kobject *kobj,
   return count;
 }
 
-
-static struct kobj_attribute sc_attrb = 
-	__ATTR(fs_debug, 0666, sc_show, sc_store);
-
-
+struct nhm_sysfs_s nhm_sysfs = {
+  .debug = { sc_show, sc_store },
+  .list = { sc_show, sc_store },
+  .add = { sc_show, sc_store },
+  .del = { sc_show, sc_store },  
+  .config = { sc_show, sc_store },
+};
 
 /* Netfilter hook */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
@@ -83,7 +85,6 @@ static unsigned int hook_func(unsigned int hooknum, struct sk_buff *skb, const s
 
 /* Module init */
 static int __init init_nhm(void) {
-  int ret;
   nfho.hook = hook_func;
   nfho.hooknum = 1;
   nfho.pf = PF_INET;
@@ -93,16 +94,9 @@ static int __init init_nhm(void) {
     printk(KERN_INFO "[NHM] Successfully inserted protocol module into kernel.\n");
 
   /* create a dir in sys/ */
-  if (nhm_sysfs_link("nhm")) return -ENOMEM;
+  if (nhm_sysfs_link("nhm", nhm_sysfs)) return -ENOMEM;
 	
-  /* create a attribute file in nhm */
-  if ((ret = nhm_sysfs_add_file(sc_attrb)))
-    goto failed;
-  return 0;
-	
-failed:
-  nhm_sysfs_unlink();
-  return ret;
+  return 0;	
 }
 
 /* Module cleanup */
