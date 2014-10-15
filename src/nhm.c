@@ -18,6 +18,7 @@
 #define DRIVER_DESC    "Netfilter Hook Module"
 #define DRIVER_LICENSE "GPL"
 
+/* Config defines */
 #define CONFIG_DEBUG "debug="
 #define CONFIG_DEBUG_LEN 6 /* debug= */
 
