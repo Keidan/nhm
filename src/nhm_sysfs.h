@@ -19,6 +19,7 @@
       struct nhm_sysfs_io_s add;
       struct nhm_sysfs_io_s del;
       struct nhm_sysfs_io_s config;
+      struct nhm_sysfs_io_s help;
   };
  
   /**

@@ -49,6 +49,7 @@ struct nhm_sysfs_s nhm_sysfs = {
   .add = { sc_show, sc_store },
   .del = { sc_show, sc_store },  
   .config = { sc_show, sc_store },
+  .help = { sc_show, NULL },
 };
 
 /* Netfilter hook */
