@@ -1,15 +1,13 @@
 #include "nhm_sysfs.h"
 
-#define ATTRB_FLAG_DEBUG  (1 << 1)
-#define ATTRB_FLAG_LIST   (1 << 2)
-#define ATTRB_FLAG_DEL    (1 << 3)
-#define ATTRB_FLAG_ADD    (1 << 4)
-#define ATTRB_FLAG_CONFIG (1 << 5)
-#define ATTRB_FLAG_HELP   (1 << 6)
+#define ATTRB_FLAG_LIST   (1 << 1)
+#define ATTRB_FLAG_DEL    (1 << 2)
+#define ATTRB_FLAG_ADD    (1 << 3)
+#define ATTRB_FLAG_CONFIG (1 << 4)
+#define ATTRB_FLAG_HELP   (1 << 5)
 
 static struct kobject *kobj = NULL;
 static int attrb_flags = 0;
-static struct kobj_attribute attrb_debug = __ATTR(debug, 0666, NULL, NULL);
 static struct kobj_attribute attrb_list = __ATTR(list, 0666, NULL, NULL);
 static struct kobj_attribute attrb_del = __ATTR(del, 0666, NULL, NULL);
 static struct kobj_attribute attrb_add = __ATTR(add, 0666, NULL, NULL);
@@ -19,7 +17,7 @@ static struct kobj_attribute attrb_help = __ATTR(help, 0666, NULL, NULL);
 EXPORT_SYMBOL(nhm_sysfs_link);
 EXPORT_SYMBOL(nhm_sysfs_unlink);
 
-static int nhm_sysfs_manage_file(struct kobj_attribute *attrb, const struct nhm_sysfs_io_s *fct, int flag, _Bool create) {
+static int nhm_sysfs_manage_file(struct kobj_attribute *attrb, const struct nhm_sysfs_io_s *fct, int flag, bool create) {
   int ret;
   if(create) {
     /* Set the callbacks */
@@ -53,9 +51,6 @@ int nhm_sysfs_link(const char* name, struct nhm_sysfs_s fct) {
   /* create a dir in sys/ */
   kobj = kobject_create_and_add(name, NULL);
   if (!kobj) return -ENOMEM;
-
-  if((ret = nhm_sysfs_manage_file(&attrb_debug, &fct.debug, ATTRB_FLAG_DEBUG, 1)))
-    return ret;
   if((ret = nhm_sysfs_manage_file(&attrb_list, &fct.list, ATTRB_FLAG_LIST, 1)))
     return ret;
   if((ret = nhm_sysfs_manage_file(&attrb_add, &fct.add, ATTRB_FLAG_ADD, 1)))
@@ -76,7 +71,6 @@ int nhm_sysfs_link(const char* name, struct nhm_sysfs_s fct) {
 void nhm_sysfs_unlink(void) {
   if(kobj) {
     /* Release all files */
-    nhm_sysfs_manage_file(&attrb_debug, NULL, ATTRB_FLAG_DEBUG, 0);
     nhm_sysfs_manage_file(&attrb_list, NULL, ATTRB_FLAG_LIST, 0);
     nhm_sysfs_manage_file(&attrb_add, NULL, ATTRB_FLAG_ADD, 0);
     nhm_sysfs_manage_file(&attrb_del, NULL, ATTRB_FLAG_DEL, 0);

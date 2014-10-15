@@ -14,7 +14,6 @@
   };
 
   struct nhm_sysfs_s {
-      struct nhm_sysfs_io_s debug;
       struct nhm_sysfs_io_s list;
       struct nhm_sysfs_io_s add;
       struct nhm_sysfs_io_s del;
