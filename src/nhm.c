@@ -18,6 +18,9 @@
 #define DRIVER_DESC    "Netfilter Hook Module"
 #define DRIVER_LICENSE "GPL"
 
+#define CONFIG_DEBUG "debug="
+#define CONFIG_DEBUG_LEN 6 /* debug= */
+
 /* Parameters */
 static bool debug = 0;
 
@@ -28,28 +31,32 @@ struct udphdr *udp_header;
 static struct nf_hook_ops nfho;
 
 
-static int n = 6;
 
-
-
-static ssize_t sc_show(struct kobject *kobj, 
-			struct kobj_attribute *attr, char *buf) {
-  return sprintf(buf, "%d\n", n);
+static ssize_t sysfs_help_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) { 
+  return sprintf(buf, "list(ro): To display the blacklisted rules.\n"	\
+		 "add(w-rule): Add a new rule.\n"			\
+		 "del(w-rule): Delete a rule.\n"			\
+		 "config(rw): Config update.\n"				\
+		 "  debug=0/1\n");
 }
-
-static ssize_t sc_store(struct kobject *kobj, 
-			struct kobj_attribute *attr, const char *buf, size_t count) {
-  sscanf(buf, "%du", &n);
+static ssize_t sysfs_config_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) { 
+  return sprintf(buf, "debug:%d\n", debug);
+}
+static ssize_t sysfs_config_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
+  if(count > CONFIG_DEBUG_LEN && !strncmp(buf, CONFIG_DEBUG, CONFIG_DEBUG_LEN)) {
+    sscanf(buf, CONFIG_DEBUG"%d", (int*)&debug);
+    printk(KERN_INFO "[NHM] New debug mode : %d\n", debug);
+  } else
+    printk(KERN_ERR "[NHM] Invalid or unknown option: '%s", buf);
   return count;
 }
 
-struct nhm_sysfs_s nhm_sysfs = {
-  .debug = { sc_show, sc_store },
-  .list = { sc_show, sc_store },
-  .add = { sc_show, sc_store },
-  .del = { sc_show, sc_store },  
-  .config = { sc_show, sc_store },
-  .help = { sc_show, NULL },
+static struct nhm_sysfs_s nhm_sysfs = {
+  .list = { NULL, NULL },
+  .add = { NULL, NULL },
+  .del = { NULL, NULL },  
+  .config = { sysfs_config_show, sysfs_config_store },
+  .help = { sysfs_help_show, NULL },
 };
 
 /* Netfilter hook */
