@@ -23,6 +23,15 @@ bool debug = 0;
 static ssize_t sysfs_help_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) { 
   return sprintf(buf, "list(ro): To display the blacklisted rules.\n"	\
 		 "add(w-rule): Add a new rule.\n"			\
+		 "  Fmt: sh=value dh=value si:value di=value sp=value dp=value np=value tp=value\n" \
+		 "  sh= Source hardware address.\n"			\
+		 "  dh= Destination hardware address.\n"		\
+		 "  si= Source IPv4 address.\n"				\
+		 "  di= Destination IPv4 address.\n"			\
+		 "  sp= Source port or range.\n"			\
+		 "  dp= Destination port or range.\n"			\
+		 "  np= Network protocol (eg: after the ethernet hdr).\n" \
+		 "  tp= Transport protocol (eg: after the IP hdr).\n"	\
 		 "del(w-rule): Delete a rule.\n"			\
 		 "config(rw): Config update.\n"				\
 		 "  debug=0/1\n");
