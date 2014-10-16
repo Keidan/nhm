@@ -6,6 +6,22 @@
   #include <linux/sysfs.h>        /* Needed by sysfs_xxxx */
   #include <linux/string.h>       /* Needed by strings operations */
 
+  #define LEN_HW 17
+  #define LEN_IPv4 15
+  #define LEN_PORTS 2
+
+
+  struct nhm_net_entry_s {
+      unsigned char sh[LEN_HW];
+      unsigned char dh[LEN_HW];
+      unsigned char si[LEN_IPv4];
+      unsigned char di[LEN_IPv4];
+      unsigned short sp[LEN_PORTS];
+      unsigned short dp[LEN_PORTS];
+      unsigned int np;
+      unsigned int tp;
+  };
+
   /***************************/
   /****NHM********************/
   /***************************/
