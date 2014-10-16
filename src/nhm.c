@@ -51,9 +51,9 @@ static struct nhm_sysfs_s nhm_sysfs = {
 
 /* Module init */
 static int __init init_nhm(void) {
-  nhm_net_start();
   /* create a dir in sys/ */
   if (nhm_sysfs_link("nhm", nhm_sysfs)) return -ENOMEM;
+  nhm_net_start();
   if(debug)
     printk(KERN_INFO "[NHM] Successfully inserted protocol module into kernel.\n");
   return 0;	
