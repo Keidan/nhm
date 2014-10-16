@@ -3,13 +3,7 @@
 #include <linux/module.h>	/* Needed by all modules */
 #include <linux/kernel.h>	/* Needed for KERN_INFO */
 #include <linux/init.h>		/* Needed for the macros */
-#include <linux/version.h>	/* Needed for KERNEL_VERSION + LINUX_VERSION_CODE */
 #include <linux/moduleparam.h>  /* Needed by params */
-#include <linux/netfilter.h>
-#include <linux/netfilter_ipv4.h>
-#include <linux/skbuff.h>
-#include <linux/ip.h>
-#include <linux/udp.h>
 #include "nhm_common.h"
 
 
@@ -23,14 +17,7 @@
 #define CONFIG_DEBUG_LEN 6 /* debug= */
 
 /* Parameters */
-static bool debug = 0;
-
-/* Global variables */
-struct sk_buff *sock_buff;
-struct iphdr *ip_header;
-struct udphdr *udp_header;
-static struct nf_hook_ops nfho;
-
+bool debug = 0;
 
 
 static ssize_t sysfs_help_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) { 
@@ -60,57 +47,21 @@ static struct nhm_sysfs_s nhm_sysfs = {
   .help = { sysfs_help_show, NULL },
 };
 
-/* Netfilter hook */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
-static unsigned int hook_func(const struct nf_hook_ops *ops, struct sk_buff *skb, const struct net_device *in, const struct net_device *out, int (*okfn)(struct sk_buff *)) {
-#else
-static unsigned int hook_func(unsigned int hooknum, struct sk_buff *skb, const struct net_device *in, const struct net_device *out, int (*okfn)(struct sk_buff *)) {
-#endif
-  sock_buff = skb;
-  if (!sock_buff)
-    return NF_ACCEPT;
-  else { 
-    ip_header = (struct iphdr *)skb_network_header(sock_buff);
-    if (!ip_header)
-      return NF_ACCEPT;
-    else { 
-      if (ip_header->protocol == IPPROTO_UDP) {
-	udp_header = (struct udphdr *)(skb_transport_header(sock_buff)+sizeof(struct iphdr));
-	if(debug) {
-	  printk(KERN_INFO "[NHM] DEBUG: nh: 0p%p\n", skb_network_header(sock_buff));
-	  printk(KERN_INFO "[NHM] DEBUG: mh: 0p%p\n", skb_mac_header(sock_buff));
-	  printk(KERN_INFO "[NHM] DEBUG: From IP address: %d.%d.%d.%dn", ip_header->saddr & 0x000000FF, (ip_header->saddr & 0x0000FF00) >> 8, (ip_header->saddr & 0x00FF0000) >> 16, (ip_header->saddr & 0xFF000000) >> 24);
-	  printk(KERN_INFO "[NHM] DEBUG: Ports s:%d, d:%d\n", udp_header->source, udp_header->dest);
-	}
-	/* Callback function here*/
-	return NF_ACCEPT;//NF_DROP;
-      } else
-	return NF_ACCEPT;
-    }
-  }
-}
-
 
 
 /* Module init */
 static int __init init_nhm(void) {
-  nfho.hook = hook_func;
-  nfho.hooknum = 1;
-  nfho.pf = PF_INET;
-  nfho.priority = NF_IP_PRI_FIRST;
-  nf_register_hook(&nfho);
-  if(debug)
-    printk(KERN_INFO "[NHM] Successfully inserted protocol module into kernel.\n");
-
+  nhm_net_start();
   /* create a dir in sys/ */
   if (nhm_sysfs_link("nhm", nhm_sysfs)) return -ENOMEM;
-	
+  if(debug)
+    printk(KERN_INFO "[NHM] Successfully inserted protocol module into kernel.\n");
   return 0;	
 }
 
 /* Module cleanup */
 static void __exit cleanup_nhm(void) {
-  nf_unregister_hook(&nfho);
+  nhm_net_stop();
   nhm_sysfs_unlink();
   if(debug)
     printk(KERN_INFO "[NHM] Successfully unloaded protocol module.\n");

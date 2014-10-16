@@ -6,6 +6,10 @@
   #include <linux/sysfs.h>        /* Needed by sysfs_xxxx */
   #include <linux/string.h>       /* Needed by strings operations */
 
+  /***************************/
+  /****NHM********************/
+  /***************************/
+  extern bool debug;
 
   /***************************/
   /****NHM SYSFS**************/
@@ -37,5 +41,21 @@
    * @brief Unlink and remove the application directory into the /sys folder.
    */
   void nhm_sysfs_unlink(void);
+
+
+  /***************************/
+  /****NHM NET****************/
+  /***************************/
+  /**
+   * @fn void nhm_net_start(void)
+   * @brief Start the netfilter hook.
+   */
+  void nhm_net_start(void);
+
+  /**
+   * @fn void nhm_net_stop(void)
+   * @brief Stop the netfilter hook.
+   */
+  void nhm_net_stop(void);
 
 #endif /* __NHM_COMMON_H__ */
