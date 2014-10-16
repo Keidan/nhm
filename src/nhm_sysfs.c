@@ -1,4 +1,4 @@
-#include "nhm_sysfs.h"
+#include "nhm_common.h"
 
 #define ATTRB_FLAG_LIST   (1 << 1)
 #define ATTRB_FLAG_DEL    (1 << 2)

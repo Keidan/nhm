@@ -1,5 +1,5 @@
-#ifndef __NHM_SYSFS_H__
-  #define __NHM_SYSFS_H__
+#ifndef __NHM_COMMON_H__
+  #define __NHM_COMMON_H__
 
 
   #include <linux/kobject.h>      /* Needed by kobject */
@@ -7,7 +7,9 @@
   #include <linux/string.h>       /* Needed by strings operations */
 
 
-
+  /***************************/
+  /****NHM SYSFS**************/
+  /***************************/
   struct nhm_sysfs_io_s {
       ssize_t (*show)(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
       ssize_t (*store)(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count);
@@ -36,4 +38,4 @@
    */
   void nhm_sysfs_unlink(void);
 
-#endif /* __NHM_SYSFS_H__ */
+#endif /* __NHM_COMMON_H__ */

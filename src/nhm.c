@@ -10,7 +10,7 @@
 #include <linux/skbuff.h>
 #include <linux/ip.h>
 #include <linux/udp.h>
-#include "nhm_sysfs.h"
+#include "nhm_common.h"
 
 
 #define DRIVER_VERSION "1.0"
