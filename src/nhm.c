@@ -16,6 +16,26 @@
 #define CONFIG_DEBUG "debug="
 #define CONFIG_DEBUG_LEN 6 /* debug= */
 
+#define RULE_PATTERN "sh=value dh=value si=value di=value sp=value dp=value np=value tp=value"
+#define MIN_STR_RULE_LEN 3 /* xx: */
+
+struct arg_s {
+    const char* name;
+    int pos;
+};
+static struct arg_s g_args [] = {
+  { "sh=", -1 },
+  { "dh=", -1 },
+  { "si=", -1 },
+  { "di=", -1 },
+  { "sp=", -1 },
+  { "dp=", -1 },
+  { "np=", -1 },
+  { "tp=", -1 },
+  { NULL, -1 },
+};
+
+
 /* Parameters */
 bool debug = 0;
 
@@ -23,7 +43,8 @@ bool debug = 0;
 static ssize_t sysfs_help_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) { 
   return sprintf(buf, "list(ro): To display the blacklisted rules.\n"	\
 		 "add(w-rule): Add a new rule.\n"			\
-		 "  Fmt: sh=value dh=value si:value di=value sp=value dp=value np=value tp=value\n" \
+		 "  Fmt: "RULE_PATTERN"\n"				\
+		 "  All fields are optionals (min 1)\n"			\
 		 "  sh= Source hardware address.\n"			\
 		 "  dh= Destination hardware address.\n"		\
 		 "  si= Source IPv4 address.\n"				\
@@ -47,10 +68,54 @@ static ssize_t sysfs_config_store(struct kobject *kobj, struct kobj_attribute *a
     printk(KERN_ERR "[NHM] Invalid or unknown option: '%s", buf);
   return count;
 }
+static void next_arg(const char* buf, size_t count, const char* arg, int* pos) {
+  size_t i;
+  *pos = -1;
+  for(i = 0; i < count; i++) 
+    if(!memcmp(buf+i, arg, MIN_STR_RULE_LEN)) {
+      *pos = (i+MIN_STR_RULE_LEN);
+      break;
+    }
+}
+static void sort_args(struct arg_s args[]) {
+  struct arg_s arg;
+  int i;  int j;
+
+  for (i=0; ; i++) {
+    for (j=i+1; ; j++) {
+      if(!args[i].name || !args[j].name) return;
+      if (args[i].pos > args[j].pos) {
+	arg=args[i];
+	args[i]=args[j];
+	args[j]=arg;
+      }
+    }
+  }
+}
+static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
+  bool found = 0;
+  struct arg_s *args;
+  if(count > MIN_STR_RULE_LEN) {
+    args = g_args;
+    while(args->name) {
+      next_arg(buf, count, args->name, &args->pos);
+      args++;
+    }
+    sort_args(g_args);
+    args = g_args;
+    while(args->name) {
+      printk(KERN_ERR "[NHM] Buffer:%s '%s'\n", args->name, buf+args->pos);
+      args++;
+    }
+  }
+  if(!found)
+    printk(KERN_ERR "[NHM] Invalid rule format: '%s'\n", RULE_PATTERN);
+  return count;
+}
 
 static struct nhm_sysfs_s nhm_sysfs = {
   .list = { NULL, NULL },
-  .add = { NULL, NULL },
+  .add = { NULL, sysfs_add_store },
   .del = { NULL, NULL },  
   .config = { sysfs_config_show, sysfs_config_store },
   .help = { sysfs_help_show, NULL },
