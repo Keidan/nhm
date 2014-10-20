@@ -19,22 +19,6 @@
 #define RULE_PATTERN "sh=value dh=value si=value di=value sp=value dp=value np=value tp=value"
 #define MIN_STR_RULE_LEN 3 /* xx: */
 
-struct arg_s {
-    const char* name;
-    int pos;
-};
-static struct arg_s g_args [] = {
-  { "sh=", -1 },
-  { "dh=", -1 },
-  { "si=", -1 },
-  { "di=", -1 },
-  { "sp=", -1 },
-  { "dp=", -1 },
-  { "np=", -1 },
-  { "tp=", -1 },
-  { NULL, -1 },
-};
-
 
 /* Parameters */
 bool debug = 0;
@@ -68,45 +52,76 @@ static ssize_t sysfs_config_store(struct kobject *kobj, struct kobj_attribute *a
     printk(KERN_ERR "[NHM] Invalid or unknown option: '%s", buf);
   return count;
 }
-static void next_arg(const char* buf, size_t count, const char* arg, int* pos) {
-  size_t i;
-  *pos = -1;
-  for(i = 0; i < count; i++) 
-    if(!memcmp(buf+i, arg, MIN_STR_RULE_LEN)) {
-      *pos = (i+MIN_STR_RULE_LEN);
-      break;
-    }
-}
-static void sort_args(struct arg_s args[]) {
-  struct arg_s arg;
-  int i;  int j;
 
-  for (i=0; ; i++) {
-    for (j=i+1; ; j++) {
-      if(!args[i].name || !args[j].name) return;
-      if (args[i].pos > args[j].pos) {
-	arg=args[i];
-	args[i]=args[j];
-	args[j]=arg;
-      }
-    }
+static bool to_uint(char *value, size_t length, unsigned int *p_uint) {
+  char str[6];
+  int ret;
+  /* temp copy */
+  strncpy(str, value, length);
+
+  printk(KERN_ERR "[NHM] Copy '%s", str);
+  /* int convert */
+  ret = kstrtouint(str, 10, p_uint);
+  if((ret == -ERANGE) || (ret == -EINVAL)) return false;
+  return true;
+}
+
+static void to_range(char *value, size_t length, unsigned short **ports) {
+  size_t idx;
+  char *copy = value;
+  /* get range index */
+  for(idx = 0; idx < length; idx++)
+    if(copy[0] == '-') return;
+    else if(copy[idx] == '-') break;
+  
+  if(!to_uint(copy, idx, (unsigned int *)&((*ports)[0]))) return;
+  if(idx) {
+    idx++; /* pass the space */
+    if(!to_uint(copy + idx, length - idx, (unsigned int *)&((*ports)[1]))) return;
   }
+
 }
 static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
   bool found = 0;
-  struct arg_s *args;
+  size_t length;
+  char *value, *copy = (char*)buf + count;
+  int last_space = count, diff = 0;
+  struct nhm_net_entry_s entry;
+
   if(count > MIN_STR_RULE_LEN) {
-    args = g_args;
-    while(args->name) {
-      next_arg(buf, count, args->name, &args->pos);
-      args++;
+    memset(&entry, 0, sizeof(struct nhm_net_entry_s));
+    while(copy != (buf - 1)) {
+      if(copy[0] == ' ' || copy == buf) {
+	/* argument length */
+	length = last_space - (copy - buf);
+	/* trim spaces */
+	value = copy[0] == ' ' ? copy + 1 : copy;
+	if(value[length - 1] == ' ') length--;
+
+	if(!memcmp(value, "sh=", MIN_STR_RULE_LEN)) {
+	  strncpy(entry.sh, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
+	} else if(!memcmp(value, "dh=", MIN_STR_RULE_LEN)) {
+	  strncpy(entry.dh, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
+	} else if(!memcmp(value, "si=", MIN_STR_RULE_LEN)) {
+	  strncpy(entry.si, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
+	} else if(!memcmp(value, "di=", MIN_STR_RULE_LEN)) {
+	  strncpy(entry.di, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
+	} else if(!memcmp(value, "sp=", MIN_STR_RULE_LEN)) {
+	  to_range(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, (unsigned short **)&entry.sp);
+	} else if(!memcmp(value, "dp=", MIN_STR_RULE_LEN)) {
+	  to_range(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, (unsigned short **)&entry.dp);
+	} else if(!memcmp(value, "np=", MIN_STR_RULE_LEN)) {
+	  to_uint(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry.np);
+	} else if(!memcmp(value, "tp=", MIN_STR_RULE_LEN)) {
+	  to_uint(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry.tp);
+	}
+	diff = (int)(copy - buf);
+	if(diff != -1) last_space = diff;
+      }
+      copy--;
     }
-    sort_args(g_args);
-    args = g_args;
-    while(args->name) {
-      printk(KERN_ERR "[NHM] Buffer:%s '%s'\n", args->name, buf+args->pos);
-      args++;
-    }
+    
+    printk(KERN_ERR "sh='%s' dh='%s' si='%s' di='%s' sp=%d-%d dp=%d-%d np=%d tp=%d\n", entry.sh, entry.dh, entry.si, entry.di, entry.sp[0], entry.sp[1], entry.dp[0], entry.dp[1], entry.np, entry.tp);
   }
   if(!found)
     printk(KERN_ERR "[NHM] Invalid rule format: '%s'\n", RULE_PATTERN);

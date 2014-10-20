@@ -6,8 +6,8 @@
   #include <linux/sysfs.h>        /* Needed by sysfs_xxxx */
   #include <linux/string.h>       /* Needed by strings operations */
 
-  #define LEN_HW 17
-  #define LEN_IPv4 15
+  #define LEN_HW 18
+  #define LEN_IPv4 16
   #define LEN_PORTS 2
 
 
