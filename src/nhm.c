@@ -57,27 +57,31 @@ static bool to_uint(char *value, size_t length, unsigned int *p_uint) {
   char str[6];
   int ret;
   /* temp copy */
+  memset(str, 0, 6);
   strncpy(str, value, length);
 
-  printk(KERN_ERR "[NHM] Copy '%s", str);
   /* int convert */
   ret = kstrtouint(str, 10, p_uint);
   if((ret == -ERANGE) || (ret == -EINVAL)) return false;
   return true;
 }
 
-static void to_range(char *value, size_t length, unsigned short **ports) {
-  size_t idx;
+static void to_range(char *value, size_t length, unsigned short *port1, unsigned short *port2) {
+  size_t i;
+  _Bool found = 0;
   char *copy = value;
   /* get range index */
-  for(idx = 0; idx < length; idx++)
+  for(i = 0; i < length; i++)
     if(copy[0] == '-') return;
-    else if(copy[idx] == '-') break;
+    else if(copy[i] == '-') {
+      found = true;
+      break;
+    }
   
-  if(!to_uint(copy, idx, (unsigned int *)&((*ports)[0]))) return;
-  if(idx) {
-    idx++; /* pass the space */
-    if(!to_uint(copy + idx, length - idx, (unsigned int *)&((*ports)[1]))) return;
+  if(!to_uint(copy, i, (unsigned int *)port1)) return;
+  if(found) {
+    i++; /* pass the space */
+    if(!to_uint(copy + i, length - i, (unsigned int *)port2)) return;
   }
 
 }
@@ -107,9 +111,9 @@ static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr
 	} else if(!memcmp(value, "di=", MIN_STR_RULE_LEN)) {
 	  strncpy(entry.di, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
 	} else if(!memcmp(value, "sp=", MIN_STR_RULE_LEN)) {
-	  to_range(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, (unsigned short **)&entry.sp);
+	  to_range(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry.sp[0], &entry.sp[1]);
 	} else if(!memcmp(value, "dp=", MIN_STR_RULE_LEN)) {
-	  to_range(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, (unsigned short **)&entry.dp);
+	  to_range(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry.dp[0], &entry.dp[1]);
 	} else if(!memcmp(value, "np=", MIN_STR_RULE_LEN)) {
 	  to_uint(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry.np);
 	} else if(!memcmp(value, "tp=", MIN_STR_RULE_LEN)) {
