@@ -16,8 +16,9 @@
 #define CONFIG_DEBUG "debug="
 #define CONFIG_DEBUG_LEN 6 /* debug= */
 
-#define RULE_PATTERN "sh=value dh=value si=value di=value sp=value dp=value np=value tp=value"
+#define RULE_PATTERN "sh=value dh=value si=value di=value sp1=value sp2=value dp1=value dp2=value np=value tp=value"
 #define MIN_STR_RULE_LEN 3 /* xx: */
+#define MIN_PORT_RULE_LEN (MIN_STR_RULE_LEN + 1) /* xxN: */
 
 
 /* Parameters */
@@ -33,8 +34,10 @@ static ssize_t sysfs_help_show(struct kobject *kobj, struct kobj_attribute *attr
 		 "  dh= Destination hardware address.\n"		\
 		 "  si= Source IPv4 address.\n"				\
 		 "  di= Destination IPv4 address.\n"			\
-		 "  sp= Source port or range.\n"			\
-		 "  dp= Destination port or range.\n"			\
+		 "  sp1= Source port or min port.\n"			\
+		 "  sp2= Source port or max port.\n"			\
+		 "  dp1= Destination port or min port.\n"		\
+		 "  dp2= Destination port or max port.\n"		\
 		 "  np= Network protocol (eg: after the ethernet hdr).\n" \
 		 "  tp= Transport protocol (eg: after the IP hdr).\n"	\
 		 "del(w-rule): Delete a rule.\n"			\
@@ -59,32 +62,12 @@ static bool to_uint(char *value, size_t length, unsigned int *p_uint) {
   /* temp copy */
   memset(str, 0, 6);
   strncpy(str, value, length);
-
   /* int convert */
   ret = kstrtouint(str, 10, p_uint);
   if((ret == -ERANGE) || (ret == -EINVAL)) return false;
   return true;
 }
 
-static void to_range(char *value, size_t length, unsigned short *port1, unsigned short *port2) {
-  size_t i;
-  _Bool found = 0;
-  char *copy = value;
-  /* get range index */
-  for(i = 0; i < length; i++)
-    if(copy[0] == '-') return;
-    else if(copy[i] == '-') {
-      found = true;
-      break;
-    }
-  
-  if(!to_uint(copy, i, (unsigned int *)port1)) return;
-  if(found) {
-    i++; /* pass the space */
-    if(!to_uint(copy + i, length - i, (unsigned int *)port2)) return;
-  }
-
-}
 static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
   bool found = 0;
   size_t length;
@@ -110,10 +93,14 @@ static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr
 	  strncpy(entry.si, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
 	} else if(!memcmp(value, "di=", MIN_STR_RULE_LEN)) {
 	  strncpy(entry.di, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
-	} else if(!memcmp(value, "sp=", MIN_STR_RULE_LEN)) {
-	  to_range(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry.sp[0], &entry.sp[1]);
-	} else if(!memcmp(value, "dp=", MIN_STR_RULE_LEN)) {
-	  to_range(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry.dp[0], &entry.dp[1]);
+	} else if(!memcmp(value, "sp1=", MIN_PORT_RULE_LEN)) {
+	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry.sp[0]);
+	} else if(!memcmp(value, "sp2=", MIN_PORT_RULE_LEN)) {
+	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry.sp[1]);
+	} else if(!memcmp(value, "dp1=", MIN_PORT_RULE_LEN)) {
+	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry.dp[0]);
+	} else if(!memcmp(value, "dp2=", MIN_PORT_RULE_LEN)) {
+	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry.dp[1]);
 	} else if(!memcmp(value, "np=", MIN_STR_RULE_LEN)) {
 	  to_uint(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry.np);
 	} else if(!memcmp(value, "tp=", MIN_STR_RULE_LEN)) {
