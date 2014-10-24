@@ -68,12 +68,10 @@ static bool to_uint(char *value, size_t length, unsigned int *p_uint) {
   return true;
 }
 
-static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
-  bool found = 0;
+static bool decode_args(const char* buf, size_t count, struct nhm_net_entry_s* entry) {
   size_t length;
   char *value, *copy = (char*)buf + count;
   int last_space = count, diff = 0;
-  struct nhm_net_entry_s entry;
 
   if(count > MIN_STR_RULE_LEN) {
     memset(&entry, 0, sizeof(struct nhm_net_entry_s));
@@ -86,34 +84,41 @@ static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr
 	if(value[length - 1] == ' ') length--;
 
 	if(!memcmp(value, "sh=", MIN_STR_RULE_LEN)) {
-	  strncpy(entry.sh, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
+	  strncpy(entry->sh, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
 	} else if(!memcmp(value, "dh=", MIN_STR_RULE_LEN)) {
-	  strncpy(entry.dh, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
+	  strncpy(entry->dh, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
 	} else if(!memcmp(value, "si=", MIN_STR_RULE_LEN)) {
-	  strncpy(entry.si, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
+	  strncpy(entry->si, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
 	} else if(!memcmp(value, "di=", MIN_STR_RULE_LEN)) {
-	  strncpy(entry.di, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
+	  strncpy(entry->di, value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN);
 	} else if(!memcmp(value, "sp1=", MIN_PORT_RULE_LEN)) {
-	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry.sp[0]);
+	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry->sp[0]);
 	} else if(!memcmp(value, "sp2=", MIN_PORT_RULE_LEN)) {
-	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry.sp[1]);
+	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry->sp[1]);
 	} else if(!memcmp(value, "dp1=", MIN_PORT_RULE_LEN)) {
-	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry.dp[0]);
+	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry->dp[0]);
 	} else if(!memcmp(value, "dp2=", MIN_PORT_RULE_LEN)) {
-	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry.dp[1]);
+	  to_uint(value + MIN_PORT_RULE_LEN, length - MIN_PORT_RULE_LEN, (unsigned int*)&entry->dp[1]);
 	} else if(!memcmp(value, "np=", MIN_STR_RULE_LEN)) {
-	  to_uint(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry.np);
+	  to_uint(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry->np);
 	} else if(!memcmp(value, "tp=", MIN_STR_RULE_LEN)) {
-	  to_uint(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry.tp);
+	  to_uint(value + MIN_STR_RULE_LEN, length - MIN_STR_RULE_LEN, &entry->tp);
 	}
 	diff = (int)(copy - buf);
 	if(diff != -1) last_space = diff;
       }
       copy--;
     }
-    
-    printk(KERN_ERR "sh='%s' dh='%s' si='%s' di='%s' sp=%d-%d dp=%d-%d np=%d tp=%d\n", entry.sh, entry.dh, entry.si, entry.di, entry.sp[0], entry.sp[1], entry.dp[0], entry.dp[1], entry.np, entry.tp);
+    return true;
   }
+  return false;
+}
+
+static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
+  bool found = 0;
+  struct nhm_net_entry_s entry;
+  if(decode_args(buf, count, &entry))
+    printk(KERN_ERR "sh='%s' dh='%s' si='%s' di='%s' sp=%d-%d dp=%d-%d np=%d tp=%d\n", entry.sh, entry.dh, entry.si, entry.di, entry.sp[0], entry.sp[1], entry.dp[0], entry.dp[1], entry.np, entry.tp);
   if(!found)
     printk(KERN_ERR "[NHM] Invalid rule format: '%s'\n", RULE_PATTERN);
   return count;
