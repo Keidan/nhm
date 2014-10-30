@@ -56,22 +56,62 @@ static ssize_t sysfs_config_store(struct kobject *kobj, struct kobj_attribute *a
 }
 
 static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
-  bool found = 0;
   struct nhm_net_entry_s entry, *res;
+  struct list_head *pos, *q;
+  bool found = false;
   if(decode_args(buf, count, &entry)) {
-    printk(KERN_ERR "sh='%s' dh='%s' si='%s' di='%s' sp=%d-%d dp=%d-%d np=%d tp=%d\n", entry.sh, entry.dh, entry.si, entry.di, entry.sp[0], entry.sp[1], entry.dp[0], entry.dp[1], entry.np, entry.tp);
-    res = kmalloc(sizeof(struct nhm_net_entry_s), GFP_KERNEL);
-    list_add(&(res->list), &(entries.list));
-  }
-  if(!found)
+    list_for_each_safe(pos, q, &entries.list){
+      res = list_entry(pos, struct nhm_net_entry_s, list);
+      if(entry_is_same(res, (&entry))) {
+	found = true;
+	break;
+      }
+    }
+    if(!found) {
+      res = kmalloc(sizeof(struct nhm_net_entry_s), GFP_KERNEL);
+      list_add(&(res->list), &(entries.list));
+    } else
+      printk(KERN_ERR "[NHM] The incoming rule is already found\n");
+  } else
     printk(KERN_ERR "[NHM] Invalid rule format: '%s'\n", RULE_PATTERN);
   return count;
 }
 
+static ssize_t sysfs_del_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
+  struct nhm_net_entry_s entry, *res;
+  struct list_head *pos, *q;
+  bool found = false;
+  if(decode_args(buf, count, &entry)) {
+    list_for_each_safe(pos, q, &entries.list){
+      res = list_entry(pos, struct nhm_net_entry_s, list);
+      if(entry_is_same(res, (&entry))) {
+	list_del(pos);
+	kfree(res);
+	found = true;
+      }
+    }
+    if(!found)
+      printk(KERN_ERR "[NHM] The incoming rule was not found\n");
+  } else
+    printk(KERN_ERR "[NHM] Invalid rule format: '%s'\n", RULE_PATTERN);
+  return count;
+}
+
+static ssize_t sysfs_list_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) {
+  struct nhm_net_entry_s *res;
+  struct list_head *pos;
+  int n = 0;
+  list_for_each(pos, &entries.list){
+    res = list_entry(pos, struct nhm_net_entry_s, list);
+    n += sprintf(buf, "sh='%s' dh='%s' si='%s' di='%s' sp=%d-%d dp=%d-%d np=%d tp=%d\n", res->sh, res->dh, res->si, res->di, res->sp[0], res->sp[1], res->dp[0], res->dp[1], res->np, res->tp);
+  }
+  return n;
+}
+
 static struct nhm_sysfs_s nhm_sysfs = {
-  .list = { NULL, NULL },
+  .list = { sysfs_list_show, NULL },
   .add = { NULL, sysfs_add_store },
-  .del = { NULL, NULL },  
+  .del = { NULL, sysfs_del_store },  
   .config = { sysfs_config_show, sysfs_config_store },
   .help = { sysfs_help_show, NULL },
 };

@@ -15,6 +15,14 @@
   #define LEN_IPv4 16
   #define LEN_PORTS 2
 
+  #define entry_is_same(e1, e2) (!memcmp(e1->sh, e2->sh, LEN_HW) &&	\
+			       !memcmp(e1->dh, e2->dh, LEN_HW) &&	\
+			       !memcmp(e1->si, e2->si, LEN_IPv4) &&	\
+			       !memcmp(e1->di, e2->di, LEN_IPv4) &&	\
+			       !memcmp(e1->sp, e2->sp, sizeof(unsigned short) * LEN_PORTS) && \
+			       !memcmp(e1->dp, e2->dp, sizeof(unsigned short) * LEN_PORTS) && \
+			       e1->np == e2->np && e1->tp == e2->tp)
+
 
   struct nhm_net_entry_s {
       unsigned char sh[LEN_HW];
