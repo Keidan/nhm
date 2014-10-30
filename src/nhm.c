@@ -4,6 +4,7 @@
 #include <linux/kernel.h>	/* Needed for KERN_INFO */
 #include <linux/init.h>		/* Needed for the macros */
 #include <linux/moduleparam.h>  /* Needed by params */
+#include <linux/slab.h>         /* Needed by kmalloc */
 #include "nhm_common.h"
 
 
@@ -56,10 +57,11 @@ static ssize_t sysfs_config_store(struct kobject *kobj, struct kobj_attribute *a
 
 static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
   bool found = 0;
-  struct nhm_net_entry_s entry;
+  struct nhm_net_entry_s entry, *res;
   if(decode_args(buf, count, &entry)) {
     printk(KERN_ERR "sh='%s' dh='%s' si='%s' di='%s' sp=%d-%d dp=%d-%d np=%d tp=%d\n", entry.sh, entry.dh, entry.si, entry.di, entry.sp[0], entry.sp[1], entry.dp[0], entry.dp[1], entry.np, entry.tp);
-    list_add(&(entry.list), &(entries.list));
+    res = kmalloc(sizeof(struct nhm_net_entry_s), GFP_KERNEL);
+    list_add(&(res->list), &(entries.list));
   }
   if(!found)
     printk(KERN_ERR "[NHM] Invalid rule format: '%s'\n", RULE_PATTERN);

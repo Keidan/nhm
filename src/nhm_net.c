@@ -71,9 +71,9 @@ void nhm_net_stop(void) {
   struct list_head *pos, *q;
   struct nhm_net_entry_s *entry;
   nf_unregister_hook(&nfho);
-  list_for_each_safe(pos, q, &mylist.list){
+  list_for_each_safe(pos, q, &entries.list){
     entry = list_entry(pos, struct nhm_net_entry_s, list);
     list_del(pos);
-    free(entry);
+    kfree(entry);
   }
 }
