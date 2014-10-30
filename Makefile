@@ -1,6 +1,6 @@
 
 obj-m += nhm.o
-nhm-objs := ./src/nhm.o ./src/nhm_sysfs.o ./src/nhm_net.o
+nhm-objs := ./src/nhm.o ./src/nhm_utils.o ./src/nhm_sysfs.o ./src/nhm_net.o
 
 KDIR = /lib/modules/$(shell uname -r)/build
 
