@@ -16,6 +16,7 @@ static struct nf_hook_ops nfho;
 EXPORT_SYMBOL(nhm_net_start);
 EXPORT_SYMBOL(nhm_net_stop);
 
+struct nhm_net_entry_s entries;
 
 /* Netfilter hook */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
@@ -53,6 +54,7 @@ static unsigned int hook_func(unsigned int hooknum, struct sk_buff *skb, const s
  * @brief Start the netfilter hook.
  */
 void nhm_net_start(void) {
+  INIT_LIST_HEAD(&entries.list);
   nfho.hook = hook_func;
   nfho.hooknum = 1;
   nfho.pf = PF_INET;

@@ -5,6 +5,11 @@
   #include <linux/kobject.h>      /* Needed by kobject */
   #include <linux/sysfs.h>        /* Needed by sysfs_xxxx */
   #include <linux/string.h>       /* Needed by strings operations */
+  #include <linux/list.h>
+
+  #define RULE_PATTERN "sh=value dh=value si=value di=value sp1=value sp2=value dp1=value dp2=value np=value tp=value"
+  #define MIN_STR_RULE_LEN 3 /* xx: */
+  #define MIN_PORT_RULE_LEN (MIN_STR_RULE_LEN + 1) /* xxN: */
 
   #define LEN_HW 18
   #define LEN_IPv4 16
@@ -20,6 +25,7 @@
       unsigned short dp[LEN_PORTS];
       unsigned int np;
       unsigned int tp;
+      struct list_head list;
   };
 
   /***************************/
@@ -73,5 +79,28 @@
    * @brief Stop the netfilter hook.
    */
   void nhm_net_stop(void);
+
+  /***************************/
+  /****NHM UTILS**************/
+  /***************************/
+  /**
+   * @fn bool decode_args(const char* buf, size_t count, struct nhm_net_entry_s* entry)
+   * @brief Decode the arguments
+   * @param buf The arguments buffer.
+   * @param count The buffer size.
+   * @param entry The output entry.
+   * @return false if the decoding failed else true
+   */
+  bool decode_args(const char* buf, size_t count, struct nhm_net_entry_s* entry);
+
+  /**
+   * @fn bool to_uint(char *value, size_t length, unsigned int *p_uint)
+   * @brief Convert a string int to int.
+   * @param value The string value.
+   * @param length The string value length.
+   * @param p_uint The output pointer.
+   * @return true on success, else false.
+   */
+  bool to_uint(char *value, size_t length, unsigned int *p_uint);
 
 #endif /* __NHM_COMMON_H__ */
