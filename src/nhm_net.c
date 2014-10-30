@@ -68,5 +68,12 @@ void nhm_net_start(void) {
  * @brief Stop the netfilter hook.
  */
 void nhm_net_stop(void) {
+  struct list_head *pos, *q;
+  struct nhm_net_entry_s *entry;
   nf_unregister_hook(&nfho);
+  list_for_each_safe(pos, q, &mylist.list){
+    entry = list_entry(pos, struct nhm_net_entry_s, list);
+    list_del(pos);
+    free(entry);
+  }
 }
