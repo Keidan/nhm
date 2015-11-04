@@ -1,147 +1,166 @@
 // 'nhm' netfilter hooks
 
-#include <linux/module.h>	/* Needed by all modules */
-#include <linux/kernel.h>	/* Needed for KERN_INFO */
-#include <linux/init.h>		/* Needed for the macros */
-#include <linux/moduleparam.h>  /* Needed by params */
-#include <linux/slab.h>         /* Needed by kmalloc */
+
+#include <linux/init.h>           // Macros used to mark up functions e.g. __init __exit
+#include <linux/module.h>         // Core header for loading LKMs into the kernel
+#include <linux/device.h>         // Header to support the kernel Driver Model
+#include <linux/kernel.h>         // Contains types, macros, functions for the kernel
+#include <linux/fs.h>             // Header for the Linux file system support
+#include <asm/uaccess.h>          // Required for the copy to user function
 #include "nhm_common.h"
 
+#define DEVICE_NAME "nhm"        ///< The device will appear at /dev/nhm using this value
+#define CLASS_NAME  "nhm"        ///< The device class -- this is a character device driver 
 
 #define DRIVER_VERSION "1.0"
-#define DRIVER_AUTHOR  "Keidan"
+#define DRIVER_AUTHOR  "Keidan (Kevin Billonneau)"
 #define DRIVER_DESC    "Netfilter Hook Module"
 #define DRIVER_LICENSE "GPL"
 
-/* Config defines */
-#define CONFIG_DEBUG "debug="
-#define CONFIG_DEBUG_LEN 6 /* debug= */
-
-
-/* Parameters */
-bool debug = 0;
-
-extern struct nhm_net_entry_s entries;
-
-
-static ssize_t sysfs_help_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) { 
-  return sprintf(buf, "list(ro): To display the blacklisted rules.\n"	\
-		 "add(w-rule): Add a new rule.\n"			\
-		 "  Fmt: "RULE_PATTERN"\n"				\
-		 "  All fields are optionals (min 1)\n"			\
-		 "  sh= Source hardware address.\n"			\
-		 "  dh= Destination hardware address.\n"		\
-		 "  si= Source IPv4 address.\n"				\
-		 "  di= Destination IPv4 address.\n"			\
-		 "  sp1= Source port or min port.\n"			\
-		 "  sp2= Source port or max port.\n"			\
-		 "  dp1= Destination port or min port.\n"		\
-		 "  dp2= Destination port or max port.\n"		\
-		 "  np= Network protocol (eg: after the ethernet hdr).\n" \
-		 "  tp= Transport protocol (eg: after the IP hdr).\n"	\
-		 "del(w-rule): Delete a rule.\n"			\
-		 "config(rw): Config update.\n"				\
-		 "  debug=0/1\n");
-}
-static ssize_t sysfs_config_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) { 
-  return sprintf(buf, "debug:%d\n", debug);
-}
-static ssize_t sysfs_config_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
-  if(count > CONFIG_DEBUG_LEN && !strncmp(buf, CONFIG_DEBUG, CONFIG_DEBUG_LEN)) {
-    sscanf(buf, CONFIG_DEBUG"%d", (int*)&debug);
-    printk(KERN_INFO "[NHM] New debug mode : %d\n", debug);
-  } else
-    printk(KERN_ERR "[NHM] Invalid or unknown option: '%s", buf);
-  return count;
-}
-
-static ssize_t sysfs_add_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
-  struct nhm_net_entry_s entry, *res;
-  struct list_head *pos, *q;
-  bool found = false;
-  if(decode_args(buf, count, &entry)) {
-    list_for_each_safe(pos, q, &entries.list){
-      res = list_entry(pos, struct nhm_net_entry_s, list);
-      if(entry_is_same(res, (&entry))) {
-	found = true;
-	break;
-      }
-    }
-    if(!found) {
-      res = kmalloc(sizeof(struct nhm_net_entry_s), GFP_KERNEL);
-      list_add(&(res->list), &(entries.list));
-    } else
-      printk(KERN_ERR "[NHM] The incoming rule is already found\n");
-  } else
-    printk(KERN_ERR "[NHM] Invalid rule format: '%s'\n", RULE_PATTERN);
-  return count;
-}
-
-static ssize_t sysfs_del_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count) {
-  struct nhm_net_entry_s entry, *res;
-  struct list_head *pos, *q;
-  bool found = false;
-  if(decode_args(buf, count, &entry)) {
-    list_for_each_safe(pos, q, &entries.list){
-      res = list_entry(pos, struct nhm_net_entry_s, list);
-      if(entry_is_same(res, (&entry))) {
-	list_del(pos);
-	kfree(res);
-	found = true;
-      }
-    }
-    if(!found)
-      printk(KERN_ERR "[NHM] The incoming rule was not found\n");
-  } else
-    printk(KERN_ERR "[NHM] Invalid rule format: '%s'\n", RULE_PATTERN);
-  return count;
-}
-
-static ssize_t sysfs_list_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf) {
-  struct nhm_net_entry_s *res;
-  struct list_head *pos;
-  int n = 0;
-  list_for_each(pos, &entries.list){
-    res = list_entry(pos, struct nhm_net_entry_s, list);
-    n += sprintf(buf, "sh='%s' dh='%s' si='%s' di='%s' sp=%d-%d dp=%d-%d np=%d tp=%d\n", res->sh, res->dh, res->si, res->di, res->sp[0], res->sp[1], res->dp[0], res->dp[1], res->np, res->tp);
-  }
-  return n;
-}
-
-static struct nhm_sysfs_s nhm_sysfs = {
-  .list = { sysfs_list_show, NULL },
-  .add = { NULL, sysfs_add_store },
-  .del = { NULL, sysfs_del_store },  
-  .config = { sysfs_config_show, sysfs_config_store },
-  .help = { sysfs_help_show, NULL },
+static int    major_number;                 ///< Stores the device number -- determined automatically
+static char   message[256] = {0};           ///< Memory for the string that is passed from userspace
+static short  size_of_message;              ///< Used to remember the size of the string stored
+static int    number_opens = 0;             ///< Counts the number of times the device is opened
+static struct class*  nhm_class  = NULL;    ///< The device-driver class struct pointer
+static struct device* nhm_device = NULL;    ///< The device-driver device struct pointer
+ 
+// The prototype functions for the character driver -- must come before the struct definition
+static int     dev_open(struct inode *, struct file *);
+static int     dev_release(struct inode *, struct file *);
+static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
+static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
+ 
+/** 
+ *  @brief Devices are represented as file structure in the kernel. The file_operations structure from
+ *  /linux/fs.h lists the callback functions that you wish to associated with your file operations
+ *  using a C99 syntax structure. char devices usually implement open, read, write and release calls
+ */
+static struct file_operations fops = {
+  .open = dev_open,
+  .read = dev_read,
+  .write = dev_write,
+  .release = dev_release,
 };
-
-
-
-/* Module init */
-static int __init init_nhm(void) {
-  /* create a dir in sys/ */
-  if (nhm_sysfs_link("nhm", nhm_sysfs)) return -ENOMEM;
-  nhm_net_start();
-  if(debug)
-    printk(KERN_INFO "[NHM] Successfully inserted protocol module into kernel.\n");
-  return 0;	
+ 
+/** 
+ *  @brief The LKM initialization function
+ *  The static keyword restricts the visibility of the function to within this C file. The __init
+ *  macro means that for a built-in driver (not a LKM) the function is only used at initialization
+ *  time and that it can be discarded and its memory freed up after that point.
+ *  @return returns 0 if successful
+ */
+static int __init nhm_init(void){
+  printk(KERN_INFO "NHM: Initializing the NHM LKM.\n");
+ 
+  // Try to dynamically allocate a major number for the device -- more difficult but worth it
+  major_number = register_chrdev(0, DEVICE_NAME, &fops);
+  if (major_number < 0){
+    printk(KERN_ALERT "NHM failed to register a major number.\n");
+    return major_number;
+  }
+  printk(KERN_INFO "NHM: registered correctly with major number %d\n", major_number);
+ 
+  // Register the device class
+  nhm_class = class_create(THIS_MODULE, CLASS_NAME);
+  if (IS_ERR(nhm_class)){                // Check for error and clean up if there is
+    unregister_chrdev(major_number, DEVICE_NAME);
+    printk(KERN_ALERT "NHM: Failed to register device class.\n");
+    return PTR_ERR(nhm_class);          // Correct way to return an error on a pointer
+  }
+  printk(KERN_INFO "NHM: device class registered correctly.\n");
+ 
+  // Register the device driver
+  nhm_device = device_create(nhm_class, NULL, MKDEV(major_number, 0), NULL, DEVICE_NAME);
+  if (IS_ERR(nhm_device)){               // Clean up if there is an error
+    class_destroy(nhm_class);           // Repeated code but the alternative is goto statements
+    unregister_chrdev(major_number, DEVICE_NAME);
+    printk(KERN_ALERT "NHM: Failed to create the device.\n");
+    return PTR_ERR(nhm_device);
+  }
+  printk(KERN_INFO "NHM: device class created correctly.\n"); // Made it! device was initialized
+  return 0;
 }
-
-/* Module cleanup */
-static void __exit cleanup_nhm(void) {
-  nhm_net_stop();
-  nhm_sysfs_unlink();
-  if(debug)
-    printk(KERN_INFO "[NHM] Successfully unloaded protocol module.\n");
+ 
+/** 
+ *  @brief The LKM cleanup function
+ *  Similar to the initialization function, it is static. The __exit macro notifies that if this
+ *  code is used for a built-in driver (not a LKM) that this function is not required.
+ */
+static void __exit nhm_exit(void){
+  device_destroy(nhm_class, MKDEV(major_number, 0));     // remove the device
+  class_unregister(nhm_class);                          // unregister the device class
+  class_destroy(nhm_class);                             // remove the device class
+  unregister_chrdev(major_number, DEVICE_NAME);             // unregister the major number
+  printk(KERN_INFO "NHM: Goodbye from the LKM!.\n");
 }
-
-/* module parameters */
-module_param(debug, bool, 0);
-MODULE_PARM_DESC(debug, "Enable extra logs.");
-/* module functions */
-module_init(init_nhm);
-module_exit(cleanup_nhm);
+ 
+/** 
+ *  @brief The device open function that is called each time the device is opened
+ *  This will only increment the number_opens counter in this case.
+ *  @param inodep A pointer to an inode object (defined in linux/fs.h)
+ *  @param filep A pointer to a file object (defined in linux/fs.h)
+ */
+static int dev_open(struct inode *inodep, struct file *filep){
+  number_opens++;
+  printk(KERN_INFO "NHM: Device has been opened %d time(s)\n", number_opens);
+  return 0;
+}
+ 
+/** 
+ *  @brief This function is called whenever device is being read from user space i.e. data is
+ *  being sent from the device to the user. In this case is uses the copy_to_user() function to
+ *  send the buffer string to the user and captures any errors.
+ *  @param filep A pointer to a file object (defined in linux/fs.h)
+ *  @param buffer The pointer to the buffer to which this function writes the data
+ *  @param len The length of the b
+ *  @param offset The offset if required
+ */
+static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
+  int error_count = 0;
+  // copy_to_user has the format ( * to, *from, size) and returns 0 on success
+  error_count = copy_to_user(buffer, message, size_of_message);
+ 
+  if (error_count==0){            // if true then have success
+    printk(KERN_INFO "NHM: Sent %d characters to the user\n", size_of_message);
+    return (size_of_message=0);  // clear the position to the start and return 0
+  }
+  else {
+    printk(KERN_INFO "NHM: Failed to send %d characters to the user\n", error_count);
+    return -EFAULT;              // Failed -- return a bad address message (i.e. -14)
+  }
+}
+ 
+/** @brief This function is called whenever the device is being written to from user space i.e.
+ *  data is sent to the device from the user. The data is copied to the message[] array in this
+ *  LKM using the sprintf() function along with the length of the string.
+ *  @param filep A pointer to a file object
+ *  @param buffer The buffer to that contains the string to write to the device
+ *  @param len The length of the array of data that is being passed in the const char buffer
+ *  @param offset The offset if required
+ */
+static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
+  sprintf(message, "%s(%d letters)", buffer, len);   // appending received string with its length
+  size_of_message = strlen(message);                 // store the length of the stored message
+  printk(KERN_INFO "NHM: Received %d characters from the user\n", len);
+  return len;
+}
+ 
+/** @brief The device release function that is called whenever the device is closed/released by
+ *  the userspace program
+ *  @param inodep A pointer to an inode object (defined in linux/fs.h)
+ *  @param filep A pointer to a file object (defined in linux/fs.h)
+ */
+static int dev_release(struct inode *inodep, struct file *filep){
+  printk(KERN_INFO "NHM: Device successfully closed.\n");
+  return 0;
+}
+ 
+/** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
+ *  identify the initialization function at insertion time and the cleanup function (as
+ *  listed above)
+ */
+module_init(nhm_init);
+module_exit(nhm_exit);
 
 /* module infos */
 MODULE_VERSION(DRIVER_VERSION);
