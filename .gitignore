@@ -8,6 +8,6 @@ Module.symvers
 modules.order
 *.swp
 *~
-certs/signing_key.priv
-certs/signing_key.x509       
+module/certs/signing_key.priv
+module/certs/signing_key.x509       
 
