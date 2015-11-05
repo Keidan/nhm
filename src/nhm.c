@@ -18,8 +18,7 @@
 #define DRIVER_LICENSE "GPL"
 
 static int    major_number;                 ///< Stores the device number -- determined automatically
-static char   message[256] = {0};           ///< Memory for the string that is passed from userspace
-static short  size_of_message;              ///< Used to remember the size of the string stored
+static struct nhm_s message;           ///< That is passed from userspace
 static int    number_opens = 0;             ///< Counts the number of times the device is opened
 static struct class*  nhm_class  = NULL;    ///< The device-driver class struct pointer
 static struct device* nhm_device = NULL;    ///< The device-driver device struct pointer
@@ -106,23 +105,14 @@ static int dev_open(struct inode *inodep, struct file *filep){
   return 0;
 }
  
-/** 
- *  @brief This function is called whenever device is being read from user space i.e. data is
- *  being sent from the device to the user. In this case is uses the copy_to_user() function to
- *  send the buffer string to the user and captures any errors.
- *  @param filep A pointer to a file object (defined in linux/fs.h)
- *  @param buffer The pointer to the buffer to which this function writes the data
- *  @param len The length of the b
- *  @param offset The offset if required
- */
 static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
-  int error_count = 0;
+  int error_count = 0, size = NHM_LENGTH;
   // copy_to_user has the format ( * to, *from, size) and returns 0 on success
-  error_count = copy_to_user(buffer, message, size_of_message);
+  error_count = copy_to_user(buffer, &message, size);
  
   if (error_count==0){            // if true then have success
-    printk(KERN_INFO "NHM: Sent %d characters to the user\n", size_of_message);
-    return (size_of_message=0);  // clear the position to the start and return 0
+    printk(KERN_INFO "NHM: Sent %d characters to the user\n", size);
+    return 0;
   }
   else {
     printk(KERN_INFO "NHM: Failed to send %d characters to the user\n", error_count);
@@ -130,18 +120,13 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
   }
 }
  
-/** @brief This function is called whenever the device is being written to from user space i.e.
- *  data is sent to the device from the user. The data is copied to the message[] array in this
- *  LKM using the sprintf() function along with the length of the string.
- *  @param filep A pointer to a file object
- *  @param buffer The buffer to that contains the string to write to the device
- *  @param len The length of the array of data that is being passed in the const char buffer
- *  @param offset The offset if required
- */
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
-  sprintf(message, "%s(%d letters)", buffer, len);   // appending received string with its length
-  size_of_message = strlen(message);                 // store the length of the stored message
-  printk(KERN_INFO "NHM: Received %d characters from the user\n", len);
+  if(len > NHM_LENGTH){
+    printk(KERN_INFO "NHM: Invalid message size\n");
+    return -EFAULT; 
+  }
+  memcpy(&message, buffer, len);
+  printk(KERN_INFO "NHM: Received a new message, ation: %d\n", message.action);
   return len;
 }
  

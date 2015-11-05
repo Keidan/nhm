@@ -1,4 +1,5 @@
 
+EXTRA_CFLAGS=-I$(PWD)/api
 obj-m += nhm.o
 nhm-objs := ./src/nhm.o ./src/nhm_net.o
 
