@@ -93,51 +93,43 @@ static void __exit nhm_exit(void){
   printk(KERN_INFO "NHM: Goodbye from the LKM!.\n");
 }
  
-/** 
- *  @brief The device open function that is called each time the device is opened
- *  This will only increment the number_opens counter in this case.
- *  @param inodep A pointer to an inode object (defined in linux/fs.h)
- *  @param filep A pointer to a file object (defined in linux/fs.h)
- */
 static int dev_open(struct inode *inodep, struct file *filep){
+  if(number_opens) {
+    printk(KERN_ALERT "NHM: Device already opened.\n");
+    return -EFAULT;
+  }
   number_opens++;
-  printk(KERN_INFO "NHM: Device has been opened %d time(s)\n", number_opens);
+  return 0;
+}
+
+static int dev_release(struct inode *inodep, struct file *filep){
+  number_opens--;
   return 0;
 }
  
 static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
   int error_count = 0, size = NHM_LENGTH;
+  if(len < NHM_LENGTH){
+    printk(KERN_ALERT "NHM: Invalid buffer size (%d/%d)\n", len, NHM_LENGTH);
+    return -EFAULT; 
+  }
   // copy_to_user has the format ( * to, *from, size) and returns 0 on success
   error_count = copy_to_user(buffer, &message, size);
- 
-  if (error_count==0){            // if true then have success
-    printk(KERN_INFO "NHM: Sent %d characters to the user\n", size);
-    return 0;
+   if (error_count){
+    printk(KERN_ALERT "NHM: Failed to send the buffer to the user: %d\n", error_count);
+    return -EFAULT;
   }
-  else {
-    printk(KERN_INFO "NHM: Failed to send %d characters to the user\n", error_count);
-    return -EFAULT;              // Failed -- return a bad address message (i.e. -14)
-  }
+   return size;
 }
  
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
-  if(len > NHM_LENGTH){
-    printk(KERN_INFO "NHM: Invalid message size\n");
+  if(len < NHM_LENGTH){
+    printk(KERN_ALERT "NHM: Invalid buffer size (%d/%d)\n", len, NHM_LENGTH);
     return -EFAULT; 
   }
   memcpy(&message, buffer, len);
   printk(KERN_INFO "NHM: Received a new message, ation: %d\n", message.action);
   return len;
-}
- 
-/** @brief The device release function that is called whenever the device is closed/released by
- *  the userspace program
- *  @param inodep A pointer to an inode object (defined in linux/fs.h)
- *  @param filep A pointer to a file object (defined in linux/fs.h)
- */
-static int dev_release(struct inode *inodep, struct file *filep){
-  printk(KERN_INFO "NHM: Device successfully closed.\n");
-  return 0;
 }
  
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
