@@ -1,9 +1,7 @@
 #ifndef __NHM_H__
   #define __NHM_H__
 
-  #define LEN_HW 18
-  #define LEN_IPv4 16
-  #define LEN_PORTS 2
+  #define LEN_HW 6
   #define NHM_LENGTH sizeof(struct nhm_s)
 
   typedef enum {
@@ -17,10 +15,10 @@
       nhm_action_te  action;
       unsigned char  s_hw[LEN_HW];
       unsigned char  d_hw[LEN_HW];
-      unsigned char  s_ip4[LEN_IPv4];
-      unsigned char  d_ip4[LEN_IPv4];
-      unsigned short s_port[LEN_PORTS];
-      unsigned short d_port[LEN_PORTS];
+      unsigned int   s_ip4;
+      unsigned int   d_ip4;
+      unsigned short s_port[2];
+      unsigned short d_port[2];
       unsigned short eth_proto;
       unsigned short ip_proto;
   };
