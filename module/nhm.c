@@ -37,6 +37,7 @@ static struct device*         nhm_device = NULL;            ///< The device-driv
 static struct nf_hook_ops     nfho;
 static struct mutex           nhm_mutex;
 static struct list_head       nhm_entries;
+static struct list_head*      nhm_entries_index = NULL;
 static unsigned int           nhm_entries_length;
 DEFINE_RAW_SPINLOCK           (nhm_entries_lock);
 
@@ -113,13 +114,14 @@ static int __init nhm_init(void){
  *  code is used for a built-in driver (not a LKM) that this function is not required.
  */
 static void __exit nhm_exit(void){
+  printk(KERN_INFO "NHM: Unloading the NHM LKM.\n");
   nhm_hook_stop();
   nhm_list_clear();
   device_destroy(nhm_class, MKDEV(NHM_MAJOR_NUMBER, 0));     // remove the device
   class_unregister(nhm_class);                          // unregister the device class
   class_destroy(nhm_class);                             // remove the device class
   unregister_chrdev(NHM_MAJOR_NUMBER, NHM_DEVICE_NAME);             // unregister the major number
-  printk(KERN_INFO "NHM: Goodbye from the LKM!.\n");
+  printk(KERN_INFO "NHM: NHM LKM unloaded.\n");
 }
  
 static int nhm_dev_open(struct inode *inodep, struct file *filep){
@@ -128,6 +130,7 @@ static int nhm_dev_open(struct inode *inodep, struct file *filep){
     return -EBUSY;
   }
   number_opens++;
+  nhm_entries_index = &nhm_entries;
   return 0;
 }
 
@@ -136,24 +139,41 @@ static int nhm_dev_release(struct inode *inodep, struct file *filep){
   return 0;
 }
 
+static void nhm_print_entry(const char* title, struct nhm_s *message) {
+  unsigned char buffer1 [4], buffer2 [4];
+  printk(KERN_INFO "[NHM] %s SrcHWaddr: %02x:%02x:%02x:%02x:%02x:%02x,  DestHWaddr: %02x:%02x:%02x:%02x:%02x:%02x\n", title,
+	 message->s_hw[0], message->s_hw[1], message->s_hw[2], message->s_hw[3], message->s_hw[4], message->s_hw[5],
+	 message->d_hw[0], message->d_hw[1], message->d_hw[2], message->d_hw[3], message->d_hw[4], message->d_hw[5]);
+  nhm_from_ip(buffer1, 0, message->s_ip4);
+  nhm_from_ip(buffer2, 0, message->d_ip4);
+  printk(KERN_INFO "[NHM] Src: %d.%d.%d.%d:[%d-%d], Dest: %d.%d.%d.%d:[%d-%d]\n", buffer1[3], buffer1[2], buffer1[1], buffer1[0], message->s_port[0], message->s_port[1],
+	 buffer2[3], buffer2[2], buffer2[1], buffer2[0], message->d_port[0], message->d_port[1]);
+  printk(KERN_INFO "[NHM] Proto: eth-%d, ip-%d\n", message->eth_proto, message->ip_proto);
+}
+
 static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
-  int size = NHM_LENGTH;
-  /*int error_count = 0;
+  int error_count = 0, size = NHM_LENGTH;
+  struct nhm_list_s *tmp;
   mutex_lock(&nhm_mutex);
-  if(len < NHM_LENGTH){
-  mutex_unlock(&nhm_mutex);
-    printk(KERN_ALERT "NHM: Invalid buffer size (%zu/%zu)\n", len, NHM_LENGTH);
+  if(nhm_entries_index == &nhm_entries) nhm_entries_index = nhm_entries_index->next;
+  if(!nhm_entries_index) {
+    mutex_unlock(&nhm_mutex);
+    printk(KERN_ALERT "NHM: Invalid list pointer\n");
     return -EFAULT; 
   }
-  // copy_to_user has the format ( * to, *from, size) and returns 0 on success
-  error_count = copy_to_user(buffer, &message, size);
-   if (error_count){
-  mutex_unlock(&nhm_mutex);
-    printk(KERN_ALERT "NHM: Failed to send the buffer to the user: %d\n", error_count);
+  tmp = list_entry(nhm_entries_index, struct nhm_list_s, list);
+  raw_spin_lock(&nhm_entries_lock);
+  nhm_entries_index = nhm_entries_index->next;
+  raw_spin_unlock(&nhm_entries_lock);
+
+  error_count = copy_to_user(buffer, &tmp->entry, size);
+  if (error_count){
+    mutex_unlock(&nhm_mutex);
+    printk(KERN_ALERT "[NHM] The copy to user failed: %d\n", error_count);
     return -EFAULT;
   }
-  mutex_unlock(&nhm_mutex);*/
-   return size;
+  mutex_unlock(&nhm_mutex);
+  return size;
 }
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
@@ -167,7 +187,6 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
   struct nhm_list_s *new, *tmp;
   struct nhm_s message;
   char* user_buffer = (char*)arg;
-  unsigned char buffer [4];
   mutex_lock(&nhm_mutex);
   switch(cmd) {
     case NHM_IOCTL_ADD: {
@@ -176,11 +195,8 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	printk(KERN_ALERT "[NHM] The copy from user failed\n");
 	err = -EIO;
       } else {
-	printk(KERN_INFO "[NHM] DEBUG: From IP address: %d\n", message.s_ip4);
-	nhm_from_ip(buffer, 0, message.s_ip4);
-	printk(KERN_INFO "[NHM] DEBUG: From IP address: %d.%d.%d.%d\n", buffer[3], buffer[2], buffer[1], buffer[0]);
 	found = 0;
-
+	nhm_print_entry("Add new rule", &message);
 	/* sanity check */
         raw_spin_lock(&nhm_entries_lock);
 	list_for_each_safe(ptr, next, &nhm_entries) {
@@ -198,6 +214,7 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	  } else {
 	    /* add new entry */
 	    memcpy(&new->entry, &message, NHM_LENGTH);
+	    memset(&new->list, 0, sizeof(struct list_head));
 	    //INIT_LIST_HEAD(&new->list);
 	    nhm_entries_length++;
 	    list_add_tail(&new->list, &nhm_entries);
@@ -218,6 +235,7 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	  tmp = list_entry(ptr, struct nhm_list_s, list);
 	  if(nhm_is_same(&message, &tmp->entry)) {
 	    nhm_entries_length--;
+	    nhm_print_entry("Remove rule", &tmp->entry);
 	    list_del(ptr);
 	    kfree(tmp);
 	    break;
@@ -225,6 +243,10 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	}
 	raw_spin_unlock(&nhm_entries_lock);
       }
+      break;
+    }
+    case NHM_IOCTL_ZERO: {
+      nhm_entries_index = &nhm_entries;
       break;
     }
     case NHM_IOCTL_CLEAR: {

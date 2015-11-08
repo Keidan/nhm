@@ -62,25 +62,30 @@ struct nhm_s {
 
 #define nhm_is_same(n1, n2) (memcmp((n1)->s_hw, (n2)->s_hw, NHM_LENGTH) == 0 \
 			     && (n1)->s_ip4 == (n2)->s_ip4		\
-			     && memcmp((n1)->s_port, (n2)->s_port, 2*sizeof(unsigned short)) == 0 \
+			     && memcmp((n1)->s_port, (n2)->s_port,	\
+				       2*sizeof(unsigned short)) == 0	\
 			     && (n1)->eth_proto == (n2)->eth_proto	\
 			     && (n1)->ip_proto == (n2)->ip_proto)
 
 /* 
  * Adds a new entry
  */
-#define NHM_IOCTL_ADD _IOW(NHM_MAJOR_NUMBER, 0, struct nhm_s *)
+#define NHM_IOCTL_ADD    _IOW(NHM_MAJOR_NUMBER, 0, struct nhm_s *)
 /* 
  * Removes an entry
  */
-#define NHM_IOCTL_DEL _IOW(NHM_MAJOR_NUMBER, 1, struct nhm_s *)
+#define NHM_IOCTL_DEL    _IOW(NHM_MAJOR_NUMBER, 1, struct nhm_s *)
 /* 
  * Removes all entries.
  */
-#define NHM_IOCTL_CLEAR _IOW(NHM_MAJOR_NUMBER, 2, void *)
+#define NHM_IOCTL_CLEAR  _IOW(NHM_MAJOR_NUMBER, 2, void *)
+/* 
+ * Clear the read index.
+ */
+#define NHM_IOCTL_ZERO   _IOW(NHM_MAJOR_NUMBER, 3, void *)
 /*
  * Get the read length
  */
-#define NHM_IOCTL_LENGTH _IOR(NHM_MAJOR_NUMBER, 3, int *)
+#define NHM_IOCTL_LENGTH _IOR(NHM_MAJOR_NUMBER, 4, int *)
 
 #endif /* __NHM_H__ */
