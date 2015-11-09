@@ -39,6 +39,7 @@ static struct mutex           nhm_mutex;
 static struct list_head       nhm_entries;
 static struct list_head*      nhm_entries_index = NULL;
 static unsigned int           nhm_entries_length;
+static nhm_nf_type_te         nhm_nf_type = NHM_NF_TYPE_ACCEPT;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33))
 static spinlock_t nhm_entries_lock;
@@ -270,6 +271,14 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
       }
       break;
     }
+    case NHM_IOCTL_NF_TYPE: {
+      /* copy for user space */
+      if(copy_from_user(&nhm_nf_type, user_buffer, sizeof(nhm_nf_type_te))) {
+	printk(KERN_ALERT "[NHM] The copy from user failed\n");
+	err = -EIO;
+      }
+      break;
+    }
     default:
       err = -ENOTTY;
   }
@@ -292,6 +301,14 @@ static void nhm_list_clear(void) {
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
+static inline unsigned int nhm_get_type(nhm_nf_type_te nhm_nf_type) {
+  if(nhm_nf_type == NHM_NF_TYPE_ACCEPT) return NF_ACCEPT;
+  else if(nhm_nf_type == NHM_NF_TYPE_DROP) return NF_DROP;
+  else if(nhm_nf_type == NHM_NF_TYPE_STOLEN) return NF_STOLEN;
+  else if(nhm_nf_type == NHM_NF_TYPE_QUEUE) return NF_QUEUE;
+  else if(nhm_nf_type == NHM_NF_TYPE_REPEAT) return NF_REPEAT;
+  return NF_STOP;
+}
 
 /* Netfilter hook */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
@@ -304,11 +321,11 @@ static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, con
   struct udphdr *udp_header;
   sock_buff = skb;
   if (!sock_buff)
-    return NF_ACCEPT;
+    return nhm_get_type(nhm_nf_type);
   else { 
     ip_header = (struct iphdr *)skb_network_header(sock_buff);
     if (!ip_header)
-      return NF_ACCEPT;
+      return nhm_get_type(nhm_nf_type);
     else { 
       if (ip_header->protocol == IPPROTO_UDP) {
 	udp_header = (struct udphdr *)(skb_transport_header(sock_buff)+sizeof(struct iphdr));
@@ -319,7 +336,7 @@ static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, con
 	/* Callback function here*/
 	return NF_ACCEPT;//NF_DROP;
       } else
-	return NF_ACCEPT;
+	return nhm_get_type(nhm_nf_type);
     }
   }
 }

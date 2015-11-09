@@ -41,7 +41,18 @@
 #define NHM_LEN_HW 6
 #define NHM_LENGTH sizeof(struct nhm_s)
 
+typedef enum {
+  NHM_NF_TYPE_DROP = 0, /* Drop the packet; don't continue traversal. */
+  NHM_NF_TYPE_ACCEPT,   /* Continue traversal as normal. */
+  NHM_NF_TYPE_STOLEN,   /* I've taken over the packet; don't continue traversal. */
+  NHM_NF_TYPE_QUEUE,    /* Queue the packet (usually for userspace handling). */
+  NHM_NF_TYPE_REPEAT,   /* Call this hook again. */
+  NHM_NF_TYPE_STOP      /* NF_STOP is similar to NF_STOLEN , only difference is function callback is called on return in case of NF_STOP. */
+} nhm_nf_type_te;
+
+
 struct nhm_s {
+    nhm_nf_type_te nf_type;
     unsigned char  s_hw[NHM_LEN_HW];
     unsigned char  d_hw[NHM_LEN_HW];
     unsigned int   s_ip4;
@@ -87,5 +98,9 @@ struct nhm_s {
  * Get the read length
  */
 #define NHM_IOCTL_LENGTH _IOR(NHM_MAJOR_NUMBER, 4, int *)
+/*
+ * Change the default netfilter type
+ */
+#define NHM_IOCTL_NF_TYPE _IOW(NHM_MAJOR_NUMBER, 5, nhm_nf_type_te *)
 
 #endif /* __NHM_H__ */
