@@ -17,8 +17,8 @@
 #include <linux/ip.h>
 #include <linux/udp.h>
 #include <linux/mutex.h>
+#include <linux/spinlock.h>
 #include <nhm.h>
-
 
 struct nhm_list_s {
     struct nhm_s entry;
@@ -39,7 +39,14 @@ static struct mutex           nhm_mutex;
 static struct list_head       nhm_entries;
 static struct list_head*      nhm_entries_index = NULL;
 static unsigned int           nhm_entries_length;
-DEFINE_RAW_SPINLOCK           (nhm_entries_lock);
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33))
+static spinlock_t nhm_entries_lock;
+#define raw_spin_lock spin_lock
+#define raw_spin_unlock spin_unlock
+#else
+static DEFINE_RAW_SPINLOCK(nhm_entries_lock);
+#endif
 
 static int     nhm_dev_open(struct inode *, struct file *);
 static int     nhm_dev_release(struct inode *, struct file *);
@@ -102,6 +109,9 @@ static int __init nhm_init(void){
   }
   printk(KERN_INFO "NHM: device class created correctly.\n"); // Made it! device was initialized
   mutex_init(&nhm_mutex);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33))
+  spin_lock_init(&nhm_entries_lock);
+#endif
   INIT_LIST_HEAD(&nhm_entries);
   nhm_entries_length = 0;
   nhm_hook_start();
