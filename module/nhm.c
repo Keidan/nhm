@@ -185,6 +185,8 @@ static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t
   return size;
 }
 
+
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
 static int nhm_dev_ioctl(struct inode *i, struct file *file, unsigned int cmd, unsigned long arg) {
 #else
@@ -227,6 +229,27 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	    //INIT_LIST_HEAD(&new->list);
 	    nhm_entries_length++;
 	    list_add_tail(&new->list, &nhm_entries);
+	  }
+	}
+        raw_spin_unlock(&nhm_entries_lock);
+      }
+      break;
+    }
+    case NHM_IOCTL_SET: {
+      /* copy for user space */
+      if(copy_from_user(&message, user_buffer, NHM_LENGTH)) {
+	printk(KERN_ALERT "[NHM] The copy from user failed\n");
+	err = -EIO;
+      } else {
+	nhm_print_entry("Set existing rule", &message);
+	/* sanity check */
+        raw_spin_lock(&nhm_entries_lock);
+	list_for_each_safe(ptr, next, &nhm_entries) {
+	  tmp = list_entry(ptr, struct nhm_list_s, list);
+	  if(nhm_is_same(&message, &tmp->entry)) {
+	    tmp->entry.dir = message.dir;
+	    tmp->entry.nf_type = message.nf_type;
+	    break;
 	  }
 	}
         raw_spin_unlock(&nhm_entries_lock);

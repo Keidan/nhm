@@ -74,19 +74,40 @@ struct nhm_s {
     bytes[offset] = (value & 0xFF);		\
   })
 
+#define nhm_is_same(n1, n2) (memcmp((n1)->hw, (n2)->hw, NHM_LENGTH) == 0 \
+			     && (n1)->ip4 == (n2)->ip4			\
+			     && memcmp((n1)->port, (n2)->port,		\
+				       2*sizeof(unsigned short)) == 0	\
+			     && (n1)->eth_proto == (n2)->eth_proto	\
+			     && (n1)->ip_proto == (n2)->ip_proto)
+
 /* 
  * Adding a new entry pointed by the IOCTL argument.
  * @code
  * struct nhm_s n;
  * memset(&n, 0, NHM_LENGTH);
  * n.ip4 = nhm_to_ip(192, 168, 0, 1);
- * n.dir = NHM_DIR_BOTH;
+ * n.dir = NHM_DIR_OUTPUT;
  * n.nf_type = NHM_NF_TYPE_DROP;
  * // After this call all packets from the ip 192.168.0.1 or to the ip 192.168.0.1 will be ignored.
  * ioctl(fd, NHM_IOCTL_ADD, &n);
  * @endcode
  */
 #define NHM_IOCTL_ADD    _IOW(NHM_MAJOR_NUMBER, 0, struct nhm_s *)
+/* 
+ * Updates an existing entry pointed by the IOCTL argument.
+ * @code
+ * struct nhm_s n;
+ * memset(&n, 0, NHM_LENGTH);
+ * n.ip4 = nhm_to_ip(192, 168, 0, 1);
+ * n.dir = NHM_DIR_INPUT;
+ * n.nf_type = NHM_NF_TYPE_DROP;
+ * // After this call all packets from the ip 192.168.0.1 or 
+ * // to the ip 192.168.0.1 will be ignored if they match with the input direction..
+ * ioctl(fd, NHM_IOCTL_SET, &n);
+ * @endcode
+ */
+#define NHM_IOCTL_SET    _IOW(NHM_MAJOR_NUMBER, 1, struct nhm_s *)
 /* 
  * Removing an existing entry pointed by the IOCTL argument.
  * @code
@@ -97,7 +118,7 @@ struct nhm_s {
  * ioctl(fd, NHM_IOCTL_DEL, &n);
  * @endcode
  */
-#define NHM_IOCTL_DEL    _IOW(NHM_MAJOR_NUMBER, 1, struct nhm_s *)
+#define NHM_IOCTL_DEL    _IOW(NHM_MAJOR_NUMBER, 2, struct nhm_s *)
 /* 
  * Removing all entries.
  * @code
@@ -105,7 +126,7 @@ struct nhm_s {
  * ioctl(fd, NHM_IOCTL_CLEAR, NULL);
  * @endcode
  */
-#define NHM_IOCTL_CLEAR  _IOW(NHM_MAJOR_NUMBER, 2, void *)
+#define NHM_IOCTL_CLEAR  _IOW(NHM_MAJOR_NUMBER, 3, void *)
 /* 
  * Changes the read index and places it to the head of the list.
  * @code
@@ -113,7 +134,7 @@ struct nhm_s {
  * ioctl(fd, NHM_IOCTL_ZERO, NULL);
  * @endcode
  */
-#define NHM_IOCTL_ZERO   _IOW(NHM_MAJOR_NUMBER, 3, void *)
+#define NHM_IOCTL_ZERO   _IOW(NHM_MAJOR_NUMBER, 4, void *)
 /*
  * Returns the number of items that the read function can return.
  * @code
@@ -122,7 +143,7 @@ struct nhm_s {
  * ioctl(fd, NHM_IOCTL_LENGTH, &length);
  * @endcode
  */
-#define NHM_IOCTL_LENGTH _IOR(NHM_MAJOR_NUMBER, 4, int *)
+#define NHM_IOCTL_LENGTH _IOR(NHM_MAJOR_NUMBER, 5, int *)
 /*
  * Changes the globale netfilter type to be apply by default.
  * @code
@@ -131,6 +152,6 @@ struct nhm_s {
  * ioctl(fd, NHM_IOCTL_NF_TYPE, NULL);
  * @endcode
  */
-#define NHM_IOCTL_NF_TYPE _IOW(NHM_MAJOR_NUMBER, 5, nhm_nf_type_te *)
+#define NHM_IOCTL_NF_TYPE _IOW(NHM_MAJOR_NUMBER, 6, nhm_nf_type_te *)
 
 #endif /* __NHM_H__ */
