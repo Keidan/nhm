@@ -11,7 +11,9 @@ Instructions
 ============
 
 
-download the software :
+To compile this module you should have the kernel source headers.
+
+Download the software :
 
 	mkdir devel
 	cd devel
@@ -19,6 +21,33 @@ download the software :
 	git clone git://github.com/Keidan/nhm.git
 	cd nhm
 	make
+	insmod module/nhm.ko
+
+
+Udev
+====
+
+
+To get the UDEV information (after inserting the module):
+
+	udevadm info -a -p /sys/class/nhm/nhm
+
+
+To insert the module with the specific rights:
+
+	KERNEL=="nhm", SUBSYSTEM=="nhm", MODE="0666", GROUP="nhmgroup"
+
+
+
+API
+====
+
+
+The NHM module offers an API (api/nhm.h) specifying the transfered datas format and the list of IOCTL's that you can use to monitor the module.
+
+You can also read the device (/dev/nhm) to obtain the list of the rules known by the module (circular buffer).
+
+A sample code explaining how to communicate with the nhm module is available into the test folder.
   
 
 License (like GPL)
