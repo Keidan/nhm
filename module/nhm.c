@@ -151,14 +151,12 @@ static int nhm_dev_release(struct inode *inodep, struct file *filep){
 }
 
 static void nhm_print_entry(const char* title, struct nhm_s *message) {
-  unsigned char buffer1 [4], buffer2 [4];
-  printk(KERN_INFO "[NHM] %s SrcHWaddr: %02x:%02x:%02x:%02x:%02x:%02x,  DestHWaddr: %02x:%02x:%02x:%02x:%02x:%02x\n", title,
-	 message->s_hw[0], message->s_hw[1], message->s_hw[2], message->s_hw[3], message->s_hw[4], message->s_hw[5],
-	 message->d_hw[0], message->d_hw[1], message->d_hw[2], message->d_hw[3], message->d_hw[4], message->d_hw[5]);
-  nhm_from_ip(buffer1, 0, message->s_ip4);
-  nhm_from_ip(buffer2, 0, message->d_ip4);
-  printk(KERN_INFO "[NHM] Src: %d.%d.%d.%d:[%d-%d], Dest: %d.%d.%d.%d:[%d-%d]\n", buffer1[3], buffer1[2], buffer1[1], buffer1[0], message->s_port[0], message->s_port[1],
-	 buffer2[3], buffer2[2], buffer2[1], buffer2[0], message->d_port[0], message->d_port[1]);
+  unsigned char buffer [4];
+  printk(KERN_INFO "[NHM] %s Dir:%s -> HWaddr: %02x:%02x:%02x:%02x:%02x:%02x\n", title,
+	 (message->dir == NHM_DIR_INPUT ? "input" : (message->dir == NHM_DIR_OUTPUT ? "output" : "both")),
+	 message->hw[0], message->hw[1], message->hw[2], message->hw[3], message->hw[4], message->hw[5]);
+  nhm_from_ip(buffer, 0, message->ip4);
+  printk(KERN_INFO "[NHM] IPv4: %d.%d.%d.%d:[%d-%d]\n", buffer[3], buffer[2], buffer[1], buffer[0], message->port[0], message->port[1]);
   printk(KERN_INFO "[NHM] Proto: eth-%d, ip-%d\n", message->eth_proto, message->ip_proto);
 }
 

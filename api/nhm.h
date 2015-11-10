@@ -50,15 +50,18 @@ typedef enum {
   NHM_NF_TYPE_STOP      /* NF_STOP is similar to NF_STOLEN , only difference is function callback is called on return in case of NF_STOP. */
 } nhm_nf_type_te;
 
+typedef enum {
+  NHM_DIR_BOTH = 0,
+  NHM_DIR_INPUT,
+  NHM_DIR_OUTPUT
+} nhm_dir_te;
 
 struct nhm_s {
     nhm_nf_type_te nf_type;
-    unsigned char  s_hw[NHM_LEN_HW];
-    unsigned char  d_hw[NHM_LEN_HW];
-    unsigned int   s_ip4;
-    unsigned int   d_ip4;
-    unsigned short s_port[2];
-    unsigned short d_port[2];
+    nhm_dir_te     dir;
+    unsigned char  hw[NHM_LEN_HW];
+    unsigned int   ip4;
+    unsigned short port[2];
     unsigned short eth_proto;
     unsigned short ip_proto;
 };
@@ -71,9 +74,9 @@ struct nhm_s {
     bytes[offset] = (value & 0xFF);		\
   })
 
-#define nhm_is_same(n1, n2) (memcmp((n1)->s_hw, (n2)->s_hw, NHM_LENGTH) == 0 \
-			     && (n1)->s_ip4 == (n2)->s_ip4		\
-			     && memcmp((n1)->s_port, (n2)->s_port,	\
+#define nhm_is_same(n1, n2) (memcmp((n1)->hw, (n2)->hw, NHM_LENGTH) == 0 \
+			     && (n1)->ip4 == (n2)->ip4			\
+			     && memcmp((n1)->port, (n2)->port,		\
 				       2*sizeof(unsigned short)) == 0	\
 			     && (n1)->eth_proto == (n2)->eth_proto	\
 			     && (n1)->ip_proto == (n2)->ip_proto)
