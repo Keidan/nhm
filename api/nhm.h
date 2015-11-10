@@ -51,19 +51,19 @@ typedef enum {
 } nhm_nf_type_te;
 
 typedef enum {
-  NHM_DIR_BOTH = 0,
-  NHM_DIR_INPUT,
-  NHM_DIR_OUTPUT
+  NHM_DIR_BOTH = 0,     /* The rule is applied for the input and the output packets. */
+  NHM_DIR_INPUT,        /* The rule is applied for the input packets. */
+  NHM_DIR_OUTPUT        /* The rule is applied for the output packets. */
 } nhm_dir_te;
 
 struct nhm_s {
-    nhm_nf_type_te nf_type;
-    nhm_dir_te     dir;
-    unsigned char  hw[NHM_LEN_HW];
-    unsigned int   ip4;
-    unsigned short port[2];
-    unsigned short eth_proto;
-    unsigned short ip_proto;
+    nhm_nf_type_te nf_type;        /* Netfilter policy. */
+    nhm_dir_te     dir;            /* Packet direction */
+    unsigned char  hw[NHM_LEN_HW]; /* Hardware MAC address. */
+    unsigned int   ip4;            /* IPv4 address. */
+    unsigned short port[2];        /* Port value or range. */
+    unsigned short eth_proto;      /* Ethernet protocol ID */
+    unsigned short ip_proto;       /* IP protocol ID */
 };
 
 #define nhm_to_ip(n0, n1, n2, n3) (((n0 & 0xFF) << 24) | ((n1 & 0xFF) << 16) | ((n2 & 0xFF) << 8) | (n3 & 0xFF))
