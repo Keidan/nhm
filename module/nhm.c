@@ -194,7 +194,6 @@ static int nhm_dev_ioctl(struct inode *i, struct file *file, unsigned int cmd, u
 static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
 #endif
   int err = 0;
-  char found = 0;
   struct list_head *ptr, *next;
   struct nhm_list_s *new, *tmp;
   struct nhm_s message;
@@ -207,51 +206,20 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	printk(KERN_ALERT "[NHM] The copy from user failed\n");
 	err = -EIO;
       } else {
-	found = 0;
 	nhm_print_entry("Add new rule", &message);
 	/* sanity check */
         raw_spin_lock(&nhm_entries_lock);
-	list_for_each_safe(ptr, next, &nhm_entries) {
-	  tmp = list_entry(ptr, struct nhm_list_s, list);
-	  if(nhm_is_same(&message, &tmp->entry)) {
-	    found=1;
-	    break;
-	  }
-	}
-	if(!found) {
-	  new = kmalloc(sizeof(struct nhm_list_s), GFP_KERNEL);
-	  if(!new) {
-	    printk(KERN_ALERT "NHM: not enough memory.\n");
-	    err = -ENOMEM; 
-	  } else {
-	    /* add new entry */
-	    memcpy(&new->entry, &message, NHM_LENGTH);
-	    memset(&new->list, 0, sizeof(struct list_head));
-	    //INIT_LIST_HEAD(&new->list);
-	    nhm_entries_length++;
-	    list_add_tail(&new->list, &nhm_entries);
-	  }
-	}
-        raw_spin_unlock(&nhm_entries_lock);
-      }
-      break;
-    }
-    case NHM_IOCTL_SET: {
-      /* copy for user space */
-      if(copy_from_user(&message, user_buffer, NHM_LENGTH)) {
-	printk(KERN_ALERT "[NHM] The copy from user failed\n");
-	err = -EIO;
-      } else {
-        raw_spin_lock(&nhm_entries_lock);
-	list_for_each_safe(ptr, next, &nhm_entries) {
-	  tmp = list_entry(ptr, struct nhm_list_s, list);
-	  if(nhm_is_same(&message, &tmp->entry)) {
-	    nhm_print_entry("Set existing rule", &message);
-	    tmp->entry.dir = message.dir;
-	    tmp->entry.nf_type = message.nf_type;
-	    memcpy(tmp->entry.dev, message.dev, IFNAMSIZ);
-	    break;
-	  }
+	new = kmalloc(sizeof(struct nhm_list_s), GFP_KERNEL);
+	if(!new) {
+	  printk(KERN_ALERT "NHM: not enough memory.\n");
+	  err = -ENOMEM; 
+	} else {
+	  /* add new entry */
+	  memcpy(&new->entry, &message, NHM_LENGTH);
+	  memset(&new->list, 0, sizeof(struct list_head));
+	  //INIT_LIST_HEAD(&new->list);
+	  nhm_entries_length++;
+	  list_add_tail(&new->list, &nhm_entries);
 	}
         raw_spin_unlock(&nhm_entries_lock);
       }
