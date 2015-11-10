@@ -126,7 +126,7 @@ struct nhm_s {
  * ioctl(fd, NHM_IOCTL_CLEAR, NULL);
  * @endcode
  */
-#define NHM_IOCTL_CLEAR  _IOW(NHM_MAJOR_NUMBER, 3, void *)
+#define NHM_IOCTL_CLEAR  _IOR(NHM_MAJOR_NUMBER, 3, void *)
 /* 
  * Changes the read index and places it to the head of the list.
  * @code
@@ -134,7 +134,7 @@ struct nhm_s {
  * ioctl(fd, NHM_IOCTL_ZERO, NULL);
  * @endcode
  */
-#define NHM_IOCTL_ZERO   _IOW(NHM_MAJOR_NUMBER, 4, void *)
+#define NHM_IOCTL_ZERO   _IOR(NHM_MAJOR_NUMBER, 4, void *)
 /*
  * Returns the number of items that the read function can return.
  * @code
