@@ -86,6 +86,7 @@ int main(){
       return errno;
     }
 
+    printf("%d -> dev:%s\n", i, message.dev);
     printf("%d -> hw: %02x:%02x:%02x:%02x:%02x:%02x\n", i, message.hw[0], message.hw[1], message.hw[2], message.hw[3], message.hw[4], message.hw[5]);
     printf("%d -> ip4: %d\n", i, message.ip4);
     printf("%d -> prt: %d-%d\n", i, message.port[0], message.port[1]);

@@ -23,6 +23,13 @@
 
 #include <linux/ioctl.h>
 
+#ifndef IFNAMSIZ
+#define IFNAMSIZ        16
+#endif
+#ifndef IFALIASZ
+#define IFALIASZ        256
+#endif
+
 /* 
  * The major device number.
  */
@@ -57,6 +64,7 @@ typedef enum {
 } nhm_dir_te;
 
 struct nhm_s {
+    char           dev[IFNAMSIZ];  /* Network device name */
     nhm_nf_type_te nf_type;        /* Netfilter policy. */
     nhm_dir_te     dir;            /* Packet direction */
     unsigned char  hw[NHM_LEN_HW]; /* Hardware MAC address. */
@@ -74,7 +82,8 @@ struct nhm_s {
     bytes[offset] = (value & 0xFF);		\
   })
 
-#define nhm_is_same(n1, n2) (memcmp((n1)->hw, (n2)->hw, NHM_LENGTH) == 0 \
+#define nhm_is_same(n1, n2) (memcmp((n1)->dev, (n2)->dev, IFNAMSIZ) == 0 \
+			     && memcmp((n1)->hw, (n2)->hw, NHM_LENGTH) == 0 \
 			     && (n1)->ip4 == (n2)->ip4			\
 			     && memcmp((n1)->port, (n2)->port,		\
 				       2*sizeof(unsigned short)) == 0	\

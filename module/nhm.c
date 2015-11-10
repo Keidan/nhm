@@ -42,11 +42,11 @@ static unsigned int           nhm_entries_length;
 static nhm_nf_type_te         nhm_nf_type = NHM_NF_TYPE_ACCEPT;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33))
-static spinlock_t nhm_entries_lock;
-#define raw_spin_lock spin_lock
-#define raw_spin_unlock spin_unlock
+static spinlock_t             nhm_entries_lock;
+#define raw_spin_lock         spin_lock
+#define raw_spin_unlock       spin_unlock
 #else
-static DEFINE_RAW_SPINLOCK(nhm_entries_lock);
+static DEFINE_RAW_SPINLOCK    (nhm_entries_lock);
 #endif
 
 static int     nhm_dev_open(struct inode *, struct file *);
@@ -152,8 +152,9 @@ static int nhm_dev_release(struct inode *inodep, struct file *filep){
 
 static void nhm_print_entry(const char* title, struct nhm_s *message) {
   unsigned char buffer [4];
-  printk(KERN_INFO "[NHM] %s Dir:%s -> HWaddr: %02x:%02x:%02x:%02x:%02x:%02x\n", title,
-	 (message->dir == NHM_DIR_INPUT ? "input" : (message->dir == NHM_DIR_OUTPUT ? "output" : "both")),
+  printk(KERN_INFO "[NHM] %s %s %s\n", title, message->dev,
+	 (message->dir == NHM_DIR_INPUT ? "input" : (message->dir == NHM_DIR_OUTPUT ? "output" : "both")));
+  printk(KERN_INFO "[NHM] HWaddr: %02x:%02x:%02x:%02x:%02x:%02x\n",
 	 message->hw[0], message->hw[1], message->hw[2], message->hw[3], message->hw[4], message->hw[5]);
   nhm_from_ip(buffer, 0, message->ip4);
   printk(KERN_INFO "[NHM] IPv4: %d.%d.%d.%d:[%d-%d]\n", buffer[3], buffer[2], buffer[1], buffer[0], message->port[0], message->port[1]);
@@ -241,14 +242,14 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	printk(KERN_ALERT "[NHM] The copy from user failed\n");
 	err = -EIO;
       } else {
-	nhm_print_entry("Set existing rule", &message);
-	/* sanity check */
         raw_spin_lock(&nhm_entries_lock);
 	list_for_each_safe(ptr, next, &nhm_entries) {
 	  tmp = list_entry(ptr, struct nhm_list_s, list);
 	  if(nhm_is_same(&message, &tmp->entry)) {
+	    nhm_print_entry("Set existing rule", &message);
 	    tmp->entry.dir = message.dir;
 	    tmp->entry.nf_type = message.nf_type;
+	    memcpy(tmp->entry.dev, message.dev, IFNAMSIZ);
 	    break;
 	  }
 	}
@@ -266,8 +267,8 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	list_for_each_safe(ptr, next, &nhm_entries) {
 	  tmp = list_entry(ptr, struct nhm_list_s, list);
 	  if(nhm_is_same(&message, &tmp->entry)) {
+	    nhm_print_entry("Remove rule", &message);
 	    nhm_entries_length--;
-	    nhm_print_entry("Remove rule", &tmp->entry);
 	    list_del(ptr);
 	    kfree(tmp);
 	    break;
