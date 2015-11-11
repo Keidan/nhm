@@ -21,6 +21,7 @@
 #include <linux/udp.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
+#include <linux/capability.h>     // Needed by capable
 #include <nhm.h>
 
 struct nhm_list_s {
@@ -206,48 +207,58 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
   mutex_lock(&nhm_mutex);
   switch(cmd) {
     case NHM_IOCTL_ADD: {
-      /* copy for user space */
-      if(copy_from_user(&message, user_buffer, NHM_LENGTH)) {
-	printk(KERN_ALERT "[NHM] The copy from user failed\n");
-	err = -EIO;
+      if(!capable(CAP_NET_ADMIN)) {
+	printk(KERN_ALERT "[NHM] The CAP_NET_ADMIN not set!\n");
+	err = -EPERM;
       } else {
-	nhm_print_rule("Add new rule", &message);
-	/* sanity check */
-        raw_spin_lock(&nhm_rules_lock);
-	new = kmalloc(sizeof(struct nhm_list_s), GFP_KERNEL);
-	if(!new) {
-	  printk(KERN_ALERT "NHM: not enough memory.\n");
-	  err = -ENOMEM; 
+	/* copy for user space */
+	if(copy_from_user(&message, user_buffer, NHM_LENGTH)) {
+	  printk(KERN_ALERT "[NHM] The copy from user failed\n");
+	  err = -EIO;
 	} else {
-	  /* add new rule */
-	  memcpy(&new->rule, &message, NHM_LENGTH);
-	  memset(&new->list, 0, sizeof(struct list_head));
-	  //INIT_LIST_HEAD(&new->list);
-	  nhm_rules_length++;
-	  list_add_tail(&new->list, &nhm_rules);
+	  nhm_print_rule("Add new rule", &message);
+	  /* sanity check */
+	  raw_spin_lock(&nhm_rules_lock);
+	  new = kmalloc(sizeof(struct nhm_list_s), GFP_KERNEL);
+	  if(!new) {
+	    printk(KERN_ALERT "NHM: not enough memory.\n");
+	    err = -ENOMEM; 
+	  } else {
+	    /* add new rule */
+	    memcpy(&new->rule, &message, NHM_LENGTH);
+	    memset(&new->list, 0, sizeof(struct list_head));
+	    //INIT_LIST_HEAD(&new->list);
+	    nhm_rules_length++;
+	    list_add_tail(&new->list, &nhm_rules);
+	  }
+	  raw_spin_unlock(&nhm_rules_lock);
 	}
-        raw_spin_unlock(&nhm_rules_lock);
       }
       break;
     }
     case NHM_IOCTL_DEL: {
-      /* copy for user space */
-      if(copy_from_user(&message, user_buffer, NHM_LENGTH)) {
-	printk(KERN_ALERT "[NHM] The copy from user failed\n");
-	err = -EIO;
+      if(!capable(CAP_NET_ADMIN)) {
+	printk(KERN_ALERT "[NHM] The CAP_NET_ADMIN not set!\n");
+	err = -EPERM;
       } else {
-	raw_spin_lock(&nhm_rules_lock);
-	list_for_each_safe(ptr, next, &nhm_rules) {
-	  tmp = list_entry(ptr, struct nhm_list_s, list);
-	  if(nhm_is_same(&message, &tmp->rule)) {
-	    nhm_print_rule("Remove rule", &message);
-	    nhm_rules_length--;
-	    list_del(ptr);
-	    kfree(tmp);
-	    break;
+	/* copy for user space */
+	if(copy_from_user(&message, user_buffer, NHM_LENGTH)) {
+	  printk(KERN_ALERT "[NHM] The copy from user failed\n");
+	  err = -EIO;
+	} else {
+	  raw_spin_lock(&nhm_rules_lock);
+	  list_for_each_safe(ptr, next, &nhm_rules) {
+	    tmp = list_entry(ptr, struct nhm_list_s, list);
+	    if(nhm_is_same(&message, &tmp->rule)) {
+	      nhm_print_rule("Remove rule", &message);
+	      nhm_rules_length--;
+	      list_del(ptr);
+	      kfree(tmp);
+	      break;
+	    }
 	  }
+	  raw_spin_unlock(&nhm_rules_lock);
 	}
-	raw_spin_unlock(&nhm_rules_lock);
       }
       break;
     }
@@ -256,7 +267,12 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
       break;
     }
     case NHM_IOCTL_CLEAR: {
-      nhm_list_clear();
+      if(!capable(CAP_NET_ADMIN)) {
+	printk(KERN_ALERT "[NHM] The CAP_NET_ADMIN not set!\n");
+	err = -EPERM;
+      } else
+	nhm_list_clear();
+      
       break;
     }
     case NHM_IOCTL_LENGTH: {
@@ -267,10 +283,16 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
       break;
     }
     case NHM_IOCTL_NF_TYPE: {
-      /* copy for user space */
-      if(copy_from_user(&nhm_nf_type, user_buffer, sizeof(nhm_nf_type_te))) {
-	printk(KERN_ALERT "[NHM] The copy from user failed\n");
-	err = -EIO;
+      if(!capable(CAP_NET_ADMIN)) {
+	printk(KERN_ALERT "[NHM] The CAP_NET_ADMIN not set!\n");
+	err = -EPERM;
+      }
+      else {
+	/* copy for user space */
+	if(copy_from_user(&nhm_nf_type, user_buffer, sizeof(nhm_nf_type_te))) {
+	  printk(KERN_ALERT "[NHM] The copy from user failed\n");
+	  err = -EIO;
+	}
       }
       break;
     }
