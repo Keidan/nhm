@@ -26,27 +26,27 @@ int main(){
   }
 
   memset(&message, 0, NHM_LENGTH);
-  message.ip4 = nhm_to_ip(192, 168, 0, 1);
+  message.ip4 = nhm_to_ipv4(192, 168, 0, 1);
   
-  nhm_from_ip(buffer, 0, message.ip4);
+  nhm_from_ipv4(buffer, 0, message.ip4);
   printf("Result: %d\n", message.ip4);
   printf("Result: %d.%d.%d.%d\n", buffer[3], buffer[2], buffer[1], buffer[0]);
 
   ret = ioctl(fd, NHM_IOCTL_ADD, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
 
-  message.ip4 = nhm_to_ip(192, 168, 0, 2);
+  message.ip4 = nhm_to_ipv4(192, 168, 0, 2);
   ret = ioctl(fd, NHM_IOCTL_ADD, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
 
   ret = ioctl(fd, NHM_IOCTL_LENGTH, &length);
   printf("Length: %d\n", length);
 
-  message.ip4 = nhm_to_ip(192, 168, 0, 2);
+  message.ip4 = nhm_to_ipv4(192, 168, 0, 2);
   ret = ioctl(fd, NHM_IOCTL_DEL, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
 
-  message.ip4 = nhm_to_ip(192, 168, 0, 2);
+  message.ip4 = nhm_to_ipv4(192, 168, 0, 2);
   ret = ioctl(fd, NHM_IOCTL_DEL, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
 
@@ -62,16 +62,16 @@ int main(){
 
 
 
-  message.ip4 = nhm_to_ip(192, 168, 0, 1);
+  message.ip4 = nhm_to_ipv4(192, 168, 0, 1);
   ret = ioctl(fd, NHM_IOCTL_ADD, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
-  message.ip4 = nhm_to_ip(192, 168, 0, 2);
+  message.ip4 = nhm_to_ipv4(192, 168, 0, 2);
   ret = ioctl(fd, NHM_IOCTL_ADD, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
   ret = ioctl(fd, NHM_IOCTL_LENGTH, &length);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
   printf("Length: %d\n", length);
-  message.ip4 = nhm_to_ip(192, 168, 0, 3);
+  message.ip4 = nhm_to_ipv4(192, 168, 0, 3);
   ret = ioctl(fd, NHM_IOCTL_ADD, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
   ret = ioctl(fd, NHM_IOCTL_LENGTH, &length);

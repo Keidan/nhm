@@ -46,6 +46,11 @@
 
 
 #define NHM_LEN_HW 6
+#define NHM_LEN_IPv6 16
+
+#define NHM_NULL_HW {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+#define NHM_NULL_IPv6 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
+
 #define NHM_LENGTH sizeof(struct nhm_s)
 
 typedef enum {
@@ -69,13 +74,14 @@ struct nhm_s {
     nhm_dir_te     dir;            /* Packet direction */
     unsigned char  hw[NHM_LEN_HW]; /* Hardware MAC address. */
     unsigned int   ip4;            /* IPv4 address. */
+    unsigned char  ip6[NHM_LEN_IPv6];         /* IPv6 address. */
     unsigned short port[2];        /* Port value or range. */
     unsigned short eth_proto;      /* Ethernet protocol ID */
     unsigned short ip_proto;       /* IP protocol ID */
 };
 
-#define nhm_to_ip(n0, n1, n2, n3) (((n0 & 0xFF) << 24) | ((n1 & 0xFF) << 16) | ((n2 & 0xFF) << 8) | (n3 & 0xFF))
-#define nhm_from_ip(bytes, offset, value) ({	\
+#define nhm_to_ipv4(n0, n1, n2, n3) (((n0 & 0xFF) << 24) | ((n1 & 0xFF) << 16) | ((n2 & 0xFF) << 8) | (n3 & 0xFF))
+#define nhm_from_ipv4(bytes, offset, value) ({	\
     bytes[offset + 3] = ((value >> 24) & 0xFF);	\
     bytes[offset + 2] = ((value >> 16) & 0xFF);	\
     bytes[offset + 1] = ((value >> 8) & 0xFF);	\
@@ -84,6 +90,7 @@ struct nhm_s {
 
 #define nhm_is_same(n1, n2) (memcmp((n1)->dev, (n2)->dev, IFNAMSIZ) == 0 \
 			     && memcmp((n1)->hw, (n2)->hw, NHM_LENGTH) == 0 \
+			     && memcmp((n1)->ip6, (n2)->ip6, NHM_LEN_IPv6) == 0 \
 			     && (n1)->ip4 == (n2)->ip4			\
 			     && memcmp((n1)->port, (n2)->port,		\
 				       2*sizeof(unsigned short)) == 0	\

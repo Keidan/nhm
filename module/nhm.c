@@ -10,18 +10,21 @@
 #include <asm/uaccess.h>          // Required for the copy to user function
 #include <linux/slab.h>           // Needed by kmalloc
 #include <linux/string.h>         // Needed by strings operations
+#include <linux/moduleparam.h>    // Needed by params
 #include <linux/list.h>
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/skbuff.h>
 #include <linux/ip.h>
+#include <linux/ipv6.h>
+#include <linux/socket.h>
 #include <linux/udp.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <nhm.h>
 
 struct nhm_list_s {
-    struct nhm_s entry;
+    struct nhm_s rule;
     struct list_head list;
 };
 
@@ -36,17 +39,18 @@ static struct class*          nhm_class  = NULL;            ///< The device-driv
 static struct device*         nhm_device = NULL;            ///< The device-driver device struct pointer
 static struct nf_hook_ops     nfho;
 static struct mutex           nhm_mutex;
-static struct list_head       nhm_entries;
-static struct list_head*      nhm_entries_index = NULL;
-static unsigned int           nhm_entries_length;
+static struct list_head       nhm_rules;
+static struct list_head*      nhm_rules_index = NULL;
+static unsigned int           nhm_rules_length;
 static nhm_nf_type_te         nhm_nf_type = NHM_NF_TYPE_ACCEPT;
+static bool                   ipv6_support = 0;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33))
-static spinlock_t             nhm_entries_lock;
+static spinlock_t             nhm_rules_lock;
 #define raw_spin_lock         spin_lock
 #define raw_spin_unlock       spin_unlock
 #else
-static DEFINE_RAW_SPINLOCK    (nhm_entries_lock);
+static DEFINE_RAW_SPINLOCK    (nhm_rules_lock);
 #endif
 
 static int     nhm_dev_open(struct inode *, struct file *);
@@ -111,10 +115,10 @@ static int __init nhm_init(void){
   printk(KERN_INFO "NHM: device class created correctly.\n"); // Made it! device was initialized
   mutex_init(&nhm_mutex);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33))
-  spin_lock_init(&nhm_entries_lock);
+  spin_lock_init(&nhm_rules_lock);
 #endif
-  INIT_LIST_HEAD(&nhm_entries);
-  nhm_entries_length = 0;
+  INIT_LIST_HEAD(&nhm_rules);
+  nhm_rules_length = 0;
   nhm_hook_start();
   return 0;
 }
@@ -141,7 +145,7 @@ static int nhm_dev_open(struct inode *inodep, struct file *filep){
     return -EBUSY;
   }
   number_opens++;
-  nhm_entries_index = &nhm_entries;
+  nhm_rules_index = &nhm_rules;
   return 0;
 }
 
@@ -150,13 +154,13 @@ static int nhm_dev_release(struct inode *inodep, struct file *filep){
   return 0;
 }
 
-static void nhm_print_entry(const char* title, struct nhm_s *message) {
+static void nhm_print_rule(const char* title, struct nhm_s *message) {
   unsigned char buffer [4];
   printk(KERN_INFO "[NHM] %s %s %s\n", title, message->dev,
 	 (message->dir == NHM_DIR_INPUT ? "input" : (message->dir == NHM_DIR_OUTPUT ? "output" : "both")));
   printk(KERN_INFO "[NHM] HWaddr: %02x:%02x:%02x:%02x:%02x:%02x\n",
 	 message->hw[0], message->hw[1], message->hw[2], message->hw[3], message->hw[4], message->hw[5]);
-  nhm_from_ip(buffer, 0, message->ip4);
+  nhm_from_ipv4(buffer, 0, message->ip4);
   printk(KERN_INFO "[NHM] IPv4: %d.%d.%d.%d:[%d-%d]\n", buffer[3], buffer[2], buffer[1], buffer[0], message->port[0], message->port[1]);
   printk(KERN_INFO "[NHM] Proto: eth-%d, ip-%d\n", message->eth_proto, message->ip_proto);
 }
@@ -165,18 +169,18 @@ static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t
   int error_count = 0, size = NHM_LENGTH;
   struct nhm_list_s *tmp;
   mutex_lock(&nhm_mutex);
-  if(nhm_entries_index == &nhm_entries) nhm_entries_index = nhm_entries_index->next;
-  if(!nhm_entries_index) {
+  if(nhm_rules_index == &nhm_rules) nhm_rules_index = nhm_rules_index->next;
+  if(!nhm_rules_index) {
     mutex_unlock(&nhm_mutex);
     printk(KERN_ALERT "NHM: Invalid list pointer\n");
     return -EFAULT; 
   }
-  tmp = list_entry(nhm_entries_index, struct nhm_list_s, list);
-  raw_spin_lock(&nhm_entries_lock);
-  nhm_entries_index = nhm_entries_index->next;
-  raw_spin_unlock(&nhm_entries_lock);
+  tmp = list_entry(nhm_rules_index, struct nhm_list_s, list);
+  raw_spin_lock(&nhm_rules_lock);
+  nhm_rules_index = nhm_rules_index->next;
+  raw_spin_unlock(&nhm_rules_lock);
 
-  error_count = copy_to_user(buffer, &tmp->entry, size);
+  error_count = copy_to_user(buffer, &tmp->rule, size);
   if (error_count){
     mutex_unlock(&nhm_mutex);
     printk(KERN_ALERT "[NHM] The copy to user failed: %d\n", error_count);
@@ -206,22 +210,22 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	printk(KERN_ALERT "[NHM] The copy from user failed\n");
 	err = -EIO;
       } else {
-	nhm_print_entry("Add new rule", &message);
+	nhm_print_rule("Add new rule", &message);
 	/* sanity check */
-        raw_spin_lock(&nhm_entries_lock);
+        raw_spin_lock(&nhm_rules_lock);
 	new = kmalloc(sizeof(struct nhm_list_s), GFP_KERNEL);
 	if(!new) {
 	  printk(KERN_ALERT "NHM: not enough memory.\n");
 	  err = -ENOMEM; 
 	} else {
-	  /* add new entry */
-	  memcpy(&new->entry, &message, NHM_LENGTH);
+	  /* add new rule */
+	  memcpy(&new->rule, &message, NHM_LENGTH);
 	  memset(&new->list, 0, sizeof(struct list_head));
 	  //INIT_LIST_HEAD(&new->list);
-	  nhm_entries_length++;
-	  list_add_tail(&new->list, &nhm_entries);
+	  nhm_rules_length++;
+	  list_add_tail(&new->list, &nhm_rules);
 	}
-        raw_spin_unlock(&nhm_entries_lock);
+        raw_spin_unlock(&nhm_rules_lock);
       }
       break;
     }
@@ -231,23 +235,23 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	printk(KERN_ALERT "[NHM] The copy from user failed\n");
 	err = -EIO;
       } else {
-	raw_spin_lock(&nhm_entries_lock);
-	list_for_each_safe(ptr, next, &nhm_entries) {
+	raw_spin_lock(&nhm_rules_lock);
+	list_for_each_safe(ptr, next, &nhm_rules) {
 	  tmp = list_entry(ptr, struct nhm_list_s, list);
-	  if(nhm_is_same(&message, &tmp->entry)) {
-	    nhm_print_entry("Remove rule", &message);
-	    nhm_entries_length--;
+	  if(nhm_is_same(&message, &tmp->rule)) {
+	    nhm_print_rule("Remove rule", &message);
+	    nhm_rules_length--;
 	    list_del(ptr);
 	    kfree(tmp);
 	    break;
 	  }
 	}
-	raw_spin_unlock(&nhm_entries_lock);
+	raw_spin_unlock(&nhm_rules_lock);
       }
       break;
     }
     case NHM_IOCTL_ZERO: {
-      nhm_entries_index = &nhm_entries;
+      nhm_rules_index = &nhm_rules;
       break;
     }
     case NHM_IOCTL_CLEAR: {
@@ -255,7 +259,7 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
       break;
     }
     case NHM_IOCTL_LENGTH: {
-      if(copy_to_user(user_buffer, &nhm_entries_length, sizeof(typeof(nhm_entries_length)))) {
+      if(copy_to_user(user_buffer, &nhm_rules_length, sizeof(typeof(nhm_rules_length)))) {
 	printk(KERN_ALERT "[NHM] The copy to user failed\n");
 	err = -EIO;
       }
@@ -279,14 +283,14 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 static void nhm_list_clear(void) {
   struct list_head *ptr, *next;
   struct nhm_list_s *tmp;
-  raw_spin_lock(&nhm_entries_lock);
-  list_for_each_safe(ptr, next, &nhm_entries) {
+  raw_spin_lock(&nhm_rules_lock);
+  list_for_each_safe(ptr, next, &nhm_rules) {
     tmp = list_entry(ptr, struct nhm_list_s, list);
     list_del(ptr);
     kfree(tmp);
   }
-  nhm_entries_length = 0;
-  raw_spin_unlock(&nhm_entries_lock);
+  nhm_rules_length = 0;
+  raw_spin_unlock(&nhm_rules_lock);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -300,35 +304,125 @@ static inline unsigned int nhm_get_type(nhm_nf_type_te nhm_nf_type) {
   return NF_STOP;
 }
 
+/**
+ * @fn static char nhm_hook_test_rule(struct sk_buff *sock_buff, const struct net_device *idevice, const struct net_device *odevice, struct nhm_s *rule, nhm_dir_te dir)
+ * @brief Manage the current rule.
+ * @param sock_buff sock_buff
+ * @param idevice idevice
+ * @param odevice odevice
+ * @param rule rule
+ * @param dir dir
+ * @return 1 if the packet is consumed, 0 else.
+ */
+static char nhm_hook_test_rule(struct sk_buff *sock_buff, const struct net_device *idevice, const struct net_device *odevice, struct nhm_s *rule, nhm_dir_te dir) {
+  static unsigned char  null_hw[NHM_LEN_HW] = NHM_NULL_HW;
+  static unsigned char  null_ip6[NHM_LEN_IPv6] = NHM_NULL_IPv6;
+  unsigned int iphdr_len;
+  struct iphdr* iphdr_v4;
+  struct ipv6hdr* iphdr_v6;
+  struct udphdr* udp;
+  struct tcphdr* tcp;
+
+  unsigned char  net_hw[NHM_LEN_HW];
+  unsigned short net_eth_proto;
+  unsigned int   net_ip4;
+  unsigned char  net_ip6[NHM_LEN_IPv6];
+  unsigned short net_port;
+  unsigned short net_ip_proto;
+
+  /* de code the headers and fill the variables */
+  iphdr_v4 = (struct iphdr *)skb_network_header(sock_buff);
+  if (!iphdr_v4)
+    return 0;
+  else {
+    if(iphdr_v4->version == 6 && ipv6_support) {
+      iphdr_v6 = (struct ipv6hdr *)iphdr_v4;
+      iphdr_len = sizeof(struct ipv6hdr);
+      net_ip_proto = iphdr_v6->nexthdr;
+      net_ip4 = 0;
+      if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
+	memcpy(net_ip6, &iphdr_v6->saddr.s6_addr, NHM_LEN_IPv6);
+      else if(dir == NHM_DIR_OUTPUT)
+	memcpy(net_ip6, &iphdr_v6->saddr.s6_addr, NHM_LEN_IPv6);
+    } else {
+      iphdr_len = sizeof(struct iphdr);
+      net_ip_proto = iphdr_v4->protocol;
+      memcpy(net_ip6, null_ip6, NHM_LEN_IPv6);
+      if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
+	net_ip4 = iphdr_v4->saddr;
+      else if(dir == NHM_DIR_OUTPUT)
+	net_ip4 = iphdr_v4->daddr;
+    }
+    if (net_ip_proto == IPPROTO_UDP) {
+      udp = (struct udphdr *)(skb_transport_header(sock_buff)+iphdr_len);
+      if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
+	net_port = udp->source;
+      else if(dir == NHM_DIR_OUTPUT)
+	net_port = udp->dest;
+    } else if (net_ip_proto == IPPROTO_TCP) {
+      tcp = (struct tcphdr *)(skb_transport_header(sock_buff)+iphdr_len);
+      if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
+	net_port = tcp->source;
+      else if(dir == NHM_DIR_OUTPUT)
+	net_port = tcp->dest;
+    }
+  }
+
+  /* Tests the device name, and continues if the variable is not initialized */
+  if((rule->dev[0] && memcmp(rule->dev, idevice->name, IFNAMSIZ) == 0) || (rule->dev[0] && memcmp(rule->dev, odevice->name, IFNAMSIZ) == 0) || !rule->dev[0]) {
+    /* Tests the hardware address, and continues if the variable is not initialized */
+    if((memcmp(rule->hw, null_hw, NHM_LEN_HW) && memcmp(rule->hw, net_hw, NHM_LEN_HW) == 0) || memcmp(rule->hw, null_hw, NHM_LEN_HW) == 0) {
+      /* Tests the ethernet protocol, and continues if the variable is not initialized */
+      if((rule->eth_proto && rule->eth_proto == net_eth_proto) || !rule->eth_proto) {
+	/* Tests the IPv4 address and the IPv6 address, and continues if the variable is not initialized */
+	if(((rule->ip4 && rule->ip4 == net_ip4) || !rule->ip4) 
+	   || ((memcmp(rule->ip6, null_ip6, NHM_LEN_IPv6) && memcmp(rule->ip6, net_ip6, NHM_LEN_IPv6) == 0) || memcmp(rule->ip6, null_ip6, NHM_LEN_IPv6) == 0)) {
+	  /* Tests the IP proto, and continues if the variable is not initialized */
+	  if((rule->ip_proto && rule->ip_proto == net_ip_proto) || !rule->ip_proto) {
+	    /* Tests the port(s), and continues if the variable is not initialized */
+	    if((rule->port[0] && rule->port[1] && net_port >= rule->port[0] && net_port <= rule->port[1])
+	       || (rule->port[0] && !rule->port[1] && net_port == rule->port[0])
+	       || (!rule->port[0] && rule->port[1] && net_port == rule->port[1])
+	       || (!rule->port[0] && !rule->port[1])) {
+	      return 1; /* consume the packet */
+	    }
+	  }
+	}
+      }
+    }
+  }
+  /* re inject the packet for the output mode */
+  if(dir == NHM_DIR_BOTH && nhm_hook_test_rule(sock_buff, idevice, odevice, rule, NHM_DIR_OUTPUT))
+     return 1; /* consume the packet */
+  return 0; /* nothing done */
+}
+
 /* Netfilter hook */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
 static unsigned int nhm_hook_func(const struct nf_hook_ops *ops, struct sk_buff *skb, const struct net_device *in, const struct net_device *out, int (*okfn)(struct sk_buff *)) {
 #else
 static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, const struct net_device *in, const struct net_device *out, int (*okfn)(struct sk_buff *)) {
 #endif
+  struct list_head *ptr, *next;
+  struct nhm_list_s *tmp;
   struct sk_buff *sock_buff;
-  struct iphdr *ip_header;
-  struct udphdr *udp_header;
+  unsigned int result = nhm_get_type(nhm_nf_type);
   sock_buff = skb;
-  if (!sock_buff)
-    return nhm_get_type(nhm_nf_type);
-  else { 
-    ip_header = (struct iphdr *)skb_network_header(sock_buff);
-    if (!ip_header)
-      return nhm_get_type(nhm_nf_type);
-    else { 
-      if (ip_header->protocol == IPPROTO_UDP) {
-	udp_header = (struct udphdr *)(skb_transport_header(sock_buff)+sizeof(struct iphdr));
-	printk(KERN_INFO "[NHM] DEBUG: nh: 0p%p\n", skb_network_header(sock_buff));
-	printk(KERN_INFO "[NHM] DEBUG: mh: 0p%p\n", skb_mac_header(sock_buff));
-	printk(KERN_INFO "[NHM] DEBUG: From IP address: %d.%d.%d.%dn", ip_header->saddr & 0x000000FF, (ip_header->saddr & 0x0000FF00) >> 8, (ip_header->saddr & 0x00FF0000) >> 16, (ip_header->saddr & 0xFF000000) >> 24);
-	printk(KERN_INFO "[NHM] DEBUG: Ports s:%d, d:%d\n", udp_header->source, udp_header->dest);
-	/* Callback function here*/
-	return NF_ACCEPT;//NF_DROP;
-      } else
-	return nhm_get_type(nhm_nf_type);
+  if (sock_buff) { 
+
+    mutex_lock(&nhm_mutex);
+    raw_spin_lock(&nhm_rules_lock);
+    list_for_each_safe(ptr, next, &nhm_rules) {
+      tmp = list_entry(ptr, struct nhm_list_s, list);
+      if(nhm_hook_test_rule(sock_buff, in, out, &tmp->rule, tmp->rule.dir)) {
+	result = nhm_get_type(tmp->rule.nf_type);
+	break;
+      }
     }
+    raw_spin_unlock(&nhm_rules_lock);
+    mutex_unlock(&nhm_mutex);
   }
+  return result;
 }
 
 /**
@@ -338,9 +432,9 @@ static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, con
 static void nhm_hook_start(void) {
   nfho.hook = nhm_hook_func;
   nfho.hooknum = 1;
-  nfho.pf = PF_INET;
+  nfho.pf = !ipv6_support ? PF_INET : PF_INET6;
   nfho.priority = NF_IP_PRI_FIRST;
-  //nf_register_hook(&nfho);
+  nf_register_hook(&nfho);
 }
 
 
@@ -349,10 +443,13 @@ static void nhm_hook_start(void) {
  * @brief Stop the netfilter hook.
  */
 static void nhm_hook_stop(void) {
-  //nf_unregister_hook(&nfho);
+  nf_unregister_hook(&nfho);
 }
  
 /////////////////////////////////////////////////////////////////////////////////////////
+/* module parameters */
+module_param(ipv6_support, bool, 0);
+MODULE_PARM_DESC(ipv6_support, "1 to enable the support of the IPv6 packets, 0 else.");
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
  *  identify the initialization function at insertion time and the cleanup function (as
  *  listed above)
