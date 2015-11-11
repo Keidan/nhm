@@ -44,7 +44,8 @@ static struct list_head*      nhm_rules_index = NULL;
 static unsigned int           nhm_rules_length;
 static nhm_nf_type_te         nhm_nf_type = NHM_NF_TYPE_ACCEPT;
 static bool                   ipv6_support = 0;
-
+static unsigned char          null_hw[NHM_LEN_HW] = NHM_NULL_HW;
+static unsigned char          null_ip6[NHM_LEN_IPv6] = NHM_NULL_IPv6;
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33))
 static spinlock_t             nhm_rules_lock;
 #define raw_spin_lock         spin_lock
@@ -305,6 +306,69 @@ static inline unsigned int nhm_get_type(nhm_nf_type_te nhm_nf_type) {
 }
 
 /**
+ * @fn static void nhm_hook_fill_rule(struct sk_buff *sock_buff, struct nhm_s *r, nhm_dir_te dir)
+ * @brief Fill the rule with the current packet.
+ * @param sock_buff sock_buff
+ * @param r r
+ * @param dir dir
+ * @return 1 if the packet is consumed, 0 else.
+ */
+static void nhm_hook_fill_rule(struct sk_buff *sock_buff, struct nhm_s *r, nhm_dir_te dir) {
+  struct ethhdr *eth;
+  unsigned int iphdr_len;
+  struct iphdr* iphdr_v4;
+  struct ipv6hdr* iphdr_v6;
+  struct udphdr* udp;
+  struct tcphdr* tcp;
+  memset(&r, 0, NHM_LENGTH);
+
+  /* decode the headers and fill the variables */
+  eth = eth_hdr(sock_buff);
+  if (eth) {
+    if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
+      memcpy(r->hw, eth->h_source, NHM_LEN_HW);
+    else if(dir == NHM_DIR_OUTPUT)
+      memcpy(r->hw, eth->h_dest, NHM_LEN_HW);
+    r->eth_proto = eth->h_proto;
+    iphdr_v4 = (struct iphdr *)skb_network_header(sock_buff);
+    if (iphdr_v4) {
+      if(iphdr_v4->version == 6 && ipv6_support) {
+	iphdr_v6 = (struct ipv6hdr *)iphdr_v4;
+	iphdr_len = sizeof(struct ipv6hdr);
+	r->ip_proto = iphdr_v6->nexthdr;
+	r->ip4 = 0;
+	if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
+	  memcpy(r->ip6, &iphdr_v6->saddr.s6_addr, NHM_LEN_IPv6);
+	else if(dir == NHM_DIR_OUTPUT)
+	  memcpy(r->ip6, &iphdr_v6->saddr.s6_addr, NHM_LEN_IPv6);
+      } else {
+	iphdr_len = sizeof(struct iphdr);
+	r->ip_proto = iphdr_v4->protocol;
+	memcpy(r->ip6, null_ip6, NHM_LEN_IPv6);
+	if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
+	  r->ip4 = iphdr_v4->saddr;
+	else if(dir == NHM_DIR_OUTPUT)
+	  r->ip4 = iphdr_v4->daddr;
+      }
+      if (r->ip_proto == IPPROTO_UDP) {
+	udp = (struct udphdr *)(skb_transport_header(sock_buff)+iphdr_len);
+	if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
+	  r->port[0] = udp->source;
+	else if(dir == NHM_DIR_OUTPUT)
+	  r->port[0] = udp->dest;
+      } else if (r->ip_proto == IPPROTO_TCP) {
+	tcp = (struct tcphdr *)(skb_transport_header(sock_buff)+iphdr_len);
+	if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
+	  r->port[0] = tcp->source;
+	else if(dir == NHM_DIR_OUTPUT)
+	  r->port[0] = tcp->dest;
+      }
+    }
+  }
+}
+
+
+/**
  * @fn static char nhm_hook_test_rule(struct sk_buff *sock_buff, const struct net_device *idevice, const struct net_device *odevice, struct nhm_s *rule, nhm_dir_te dir)
  * @brief Manage the current rule.
  * @param sock_buff sock_buff
@@ -314,75 +378,22 @@ static inline unsigned int nhm_get_type(nhm_nf_type_te nhm_nf_type) {
  * @param dir dir
  * @return 1 if the packet is consumed, 0 else.
  */
-static char nhm_hook_test_rule(struct sk_buff *sock_buff, const struct net_device *idevice, const struct net_device *odevice, struct nhm_s *rule, nhm_dir_te dir) {
-  static unsigned char  null_hw[NHM_LEN_HW] = NHM_NULL_HW;
-  static unsigned char  null_ip6[NHM_LEN_IPv6] = NHM_NULL_IPv6;
-  unsigned int iphdr_len;
-  struct iphdr* iphdr_v4;
-  struct ipv6hdr* iphdr_v6;
-  struct udphdr* udp;
-  struct tcphdr* tcp;
-
-  unsigned char  net_hw[NHM_LEN_HW];
-  unsigned short net_eth_proto;
-  unsigned int   net_ip4;
-  unsigned char  net_ip6[NHM_LEN_IPv6];
-  unsigned short net_port;
-  unsigned short net_ip_proto;
-
-  /* de code the headers and fill the variables */
-  iphdr_v4 = (struct iphdr *)skb_network_header(sock_buff);
-  if (!iphdr_v4)
-    return 0;
-  else {
-    if(iphdr_v4->version == 6 && ipv6_support) {
-      iphdr_v6 = (struct ipv6hdr *)iphdr_v4;
-      iphdr_len = sizeof(struct ipv6hdr);
-      net_ip_proto = iphdr_v6->nexthdr;
-      net_ip4 = 0;
-      if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
-	memcpy(net_ip6, &iphdr_v6->saddr.s6_addr, NHM_LEN_IPv6);
-      else if(dir == NHM_DIR_OUTPUT)
-	memcpy(net_ip6, &iphdr_v6->saddr.s6_addr, NHM_LEN_IPv6);
-    } else {
-      iphdr_len = sizeof(struct iphdr);
-      net_ip_proto = iphdr_v4->protocol;
-      memcpy(net_ip6, null_ip6, NHM_LEN_IPv6);
-      if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
-	net_ip4 = iphdr_v4->saddr;
-      else if(dir == NHM_DIR_OUTPUT)
-	net_ip4 = iphdr_v4->daddr;
-    }
-    if (net_ip_proto == IPPROTO_UDP) {
-      udp = (struct udphdr *)(skb_transport_header(sock_buff)+iphdr_len);
-      if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
-	net_port = udp->source;
-      else if(dir == NHM_DIR_OUTPUT)
-	net_port = udp->dest;
-    } else if (net_ip_proto == IPPROTO_TCP) {
-      tcp = (struct tcphdr *)(skb_transport_header(sock_buff)+iphdr_len);
-      if(dir == NHM_DIR_INPUT || dir == NHM_DIR_BOTH)
-	net_port = tcp->source;
-      else if(dir == NHM_DIR_OUTPUT)
-	net_port = tcp->dest;
-    }
-  }
-
+static char nhm_hook_test_rule(const struct net_device *idevice, const struct net_device *odevice, struct nhm_s *packet_r, struct nhm_s *rule) {
   /* Tests the device name, and continues if the variable is not initialized */
   if((rule->dev[0] && memcmp(rule->dev, idevice->name, IFNAMSIZ) == 0) || (rule->dev[0] && memcmp(rule->dev, odevice->name, IFNAMSIZ) == 0) || !rule->dev[0]) {
     /* Tests the hardware address, and continues if the variable is not initialized */
-    if((memcmp(rule->hw, null_hw, NHM_LEN_HW) && memcmp(rule->hw, net_hw, NHM_LEN_HW) == 0) || memcmp(rule->hw, null_hw, NHM_LEN_HW) == 0) {
+    if((memcmp(rule->hw, null_hw, NHM_LEN_HW) && memcmp(rule->hw, packet_r->hw, NHM_LEN_HW) == 0) || memcmp(rule->hw, null_hw, NHM_LEN_HW) == 0) {
       /* Tests the ethernet protocol, and continues if the variable is not initialized */
-      if((rule->eth_proto && rule->eth_proto == net_eth_proto) || !rule->eth_proto) {
+      if((rule->eth_proto && rule->eth_proto == packet_r->eth_proto) || !rule->eth_proto) {
 	/* Tests the IPv4 address and the IPv6 address, and continues if the variable is not initialized */
-	if(((rule->ip4 && rule->ip4 == net_ip4) || !rule->ip4) 
-	   || ((memcmp(rule->ip6, null_ip6, NHM_LEN_IPv6) && memcmp(rule->ip6, net_ip6, NHM_LEN_IPv6) == 0) || memcmp(rule->ip6, null_ip6, NHM_LEN_IPv6) == 0)) {
+	if(((rule->ip4 && rule->ip4 == packet_r->ip4) || !rule->ip4) 
+	   || ((memcmp(rule->ip6, null_ip6, NHM_LEN_IPv6) && memcmp(rule->ip6, packet_r->ip6, NHM_LEN_IPv6) == 0) || memcmp(rule->ip6, null_ip6, NHM_LEN_IPv6) == 0)) {
 	  /* Tests the IP proto, and continues if the variable is not initialized */
-	  if((rule->ip_proto && rule->ip_proto == net_ip_proto) || !rule->ip_proto) {
+	  if((rule->ip_proto && rule->ip_proto == packet_r->ip_proto) || !rule->ip_proto) {
 	    /* Tests the port(s), and continues if the variable is not initialized */
-	    if((rule->port[0] && rule->port[1] && net_port >= rule->port[0] && net_port <= rule->port[1])
-	       || (rule->port[0] && !rule->port[1] && net_port == rule->port[0])
-	       || (!rule->port[0] && rule->port[1] && net_port == rule->port[1])
+	    if((rule->port[0] && rule->port[1] && packet_r->port[0] >= rule->port[0] && packet_r->port[0] <= rule->port[1])
+	       || (rule->port[0] && !rule->port[1] && packet_r->port[0] == rule->port[0])
+	       || (!rule->port[0] && rule->port[1] && packet_r->port[0] == rule->port[1])
 	       || (!rule->port[0] && !rule->port[1])) {
 	      return 1; /* consume the packet */
 	    }
@@ -391,9 +402,6 @@ static char nhm_hook_test_rule(struct sk_buff *sock_buff, const struct net_devic
       }
     }
   }
-  /* re inject the packet for the output mode */
-  if(dir == NHM_DIR_BOTH && nhm_hook_test_rule(sock_buff, idevice, odevice, rule, NHM_DIR_OUTPUT))
-     return 1; /* consume the packet */
   return 0; /* nothing done */
 }
 
@@ -406,6 +414,7 @@ static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, con
   struct list_head *ptr, *next;
   struct nhm_list_s *tmp;
   struct sk_buff *sock_buff;
+  struct nhm_s r;
   unsigned int result = nhm_get_type(nhm_nf_type);
   sock_buff = skb;
   if (sock_buff) { 
@@ -414,9 +423,23 @@ static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, con
     raw_spin_lock(&nhm_rules_lock);
     list_for_each_safe(ptr, next, &nhm_rules) {
       tmp = list_entry(ptr, struct nhm_list_s, list);
-      if(nhm_hook_test_rule(sock_buff, in, out, &tmp->rule, tmp->rule.dir)) {
-	result = nhm_get_type(tmp->rule.nf_type);
-	break;
+      if(tmp->rule.dir == NHM_DIR_BOTH) {
+	nhm_hook_fill_rule(sock_buff, &r, NHM_DIR_INPUT);
+	if(nhm_hook_test_rule(in, out, &r, &tmp->rule)) {
+	  result = nhm_get_type(tmp->rule.nf_type);
+	  break;
+	}
+	nhm_hook_fill_rule(sock_buff, &r, NHM_DIR_OUTPUT);
+	if(nhm_hook_test_rule(in, out, &r, &tmp->rule)) {
+	  result = nhm_get_type(tmp->rule.nf_type);
+	  break;
+	}
+      } else {
+	nhm_hook_fill_rule(sock_buff, &r, tmp->rule.dir);
+	if(nhm_hook_test_rule(in, out, &r, &tmp->rule)) {
+	  result = nhm_get_type(tmp->rule.nf_type);
+	  break;
+	}
       }
     }
     raw_spin_unlock(&nhm_rules_lock);
