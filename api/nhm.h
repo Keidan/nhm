@@ -102,7 +102,7 @@ struct nhm_s {
  * @code
  * struct nhm_s n;
  * memset(&n, 0, NHM_LENGTH);
- * n.ip4 = nhm_to_ip(192, 168, 0, 1);
+ * n.ip4 = nhm_to_ipv4(192, 168, 0, 1);
  * n.dir = NHM_DIR_OUTPUT;
  * n.nf_type = NHM_NF_TYPE_DROP;
  * // After this call all packets from the ip 192.168.0.1 or to the ip 192.168.0.1 will be ignored.
@@ -115,7 +115,7 @@ struct nhm_s {
  * @code
  * struct nhm_s n;
  * memset(&n, 0, NHM_LENGTH);
- * n.ip4 = nhm_to_ip(192, 168, 0, 1);
+ * n.ip4 = nhm_to_ipv4(192, 168, 0, 1);
  * // After this call all packets from the ip 192.168.0.1 or to the ip 192.168.0.1 will be accepted.
  * ioctl(fd, NHM_IOCTL_DEL, &n);
  * @endcode
