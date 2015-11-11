@@ -158,7 +158,7 @@ static int nhm_dev_release(struct inode *inodep, struct file *filep){
 
 static void nhm_print_rule(const char* title, struct nhm_s *message) {
   unsigned char buffer [4];
-  printk(KERN_INFO "[NHM] %s %s %s\n", title, message->dev,
+  printk(KERN_INFO "[NHM] %s %s dir: %s\n", title, message->dev,
 	 (message->dir == NHM_DIR_INPUT ? "input" : (message->dir == NHM_DIR_OUTPUT ? "output" : "both")));
   printk(KERN_INFO "[NHM] HWaddr: %02x:%02x:%02x:%02x:%02x:%02x\n",
 	 message->hw[0], message->hw[1], message->hw[2], message->hw[3], message->hw[4], message->hw[5]);
@@ -387,6 +387,7 @@ static void nhm_hook_fill_rule(struct sk_buff *sock_buff, struct nhm_s *r, nhm_d
       }
     }
   }
+  nhm_print_rule("Packet to check", r);
 }
 
 
