@@ -20,7 +20,6 @@
 #include <linux/socket.h>
 #include <linux/udp.h>
 #include <linux/mutex.h>
-#include <linux/spinlock.h>
 #include <linux/capability.h>     // Needed by capable
 #include <nhm.h>
 
@@ -47,13 +46,6 @@ static nhm_nf_type_te         nhm_nf_type = NHM_NF_TYPE_ACCEPT;
 static bool                   ipv6_support = 0;
 static unsigned char          null_hw[NHM_LEN_HW] = NHM_NULL_HW;
 static unsigned char          null_ip6[NHM_LEN_IPv6] = NHM_NULL_IPv6;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33))
-static spinlock_t             nhm_rules_lock;
-#define raw_spin_lock         spin_lock
-#define raw_spin_unlock       spin_unlock
-#else
-static DEFINE_RAW_SPINLOCK    (nhm_rules_lock);
-#endif
 
 static int     nhm_dev_open(struct inode *, struct file *);
 static int     nhm_dev_release(struct inode *, struct file *);
@@ -116,9 +108,6 @@ static int __init nhm_init(void){
   }
   printk(KERN_INFO "NHM: device class created correctly.\n"); // Made it! device was initialized
   mutex_init(&nhm_mutex);
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33))
-  spin_lock_init(&nhm_rules_lock);
-#endif
   INIT_LIST_HEAD(&nhm_rules);
   nhm_rules_length = 0;
   nhm_hook_start();
@@ -178,9 +167,7 @@ static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t
     return -EFAULT; 
   }
   tmp = list_entry(nhm_rules_index, struct nhm_list_s, list);
-  raw_spin_lock(&nhm_rules_lock);
   nhm_rules_index = nhm_rules_index->next;
-  raw_spin_unlock(&nhm_rules_lock);
 
   error_count = copy_to_user(buffer, &tmp->rule, size);
   if (error_count){
@@ -218,7 +205,6 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	} else {
 	  nhm_print_rule("Add new rule", &message);
 	  /* sanity check */
-	  raw_spin_lock(&nhm_rules_lock);
 	  new = kmalloc(sizeof(struct nhm_list_s), GFP_KERNEL);
 	  if(!new) {
 	    printk(KERN_ALERT "NHM: not enough memory.\n");
@@ -231,7 +217,6 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	    nhm_rules_length++;
 	    list_add_tail(&new->list, &nhm_rules);
 	  }
-	  raw_spin_unlock(&nhm_rules_lock);
 	}
       }
       break;
@@ -246,7 +231,6 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	  printk(KERN_ALERT "[NHM] The copy from user failed\n");
 	  err = -EIO;
 	} else {
-	  raw_spin_lock(&nhm_rules_lock);
 	  list_for_each_safe(ptr, next, &nhm_rules) {
 	    tmp = list_entry(ptr, struct nhm_list_s, list);
 	    if(nhm_is_same(&message, &tmp->rule)) {
@@ -257,7 +241,6 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	      break;
 	    }
 	  }
-	  raw_spin_unlock(&nhm_rules_lock);
 	}
       }
       break;
@@ -306,14 +289,12 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 static void nhm_list_clear(void) {
   struct list_head *ptr, *next;
   struct nhm_list_s *tmp;
-  raw_spin_lock(&nhm_rules_lock);
   list_for_each_safe(ptr, next, &nhm_rules) {
     tmp = list_entry(ptr, struct nhm_list_s, list);
     list_del(ptr);
     kfree(tmp);
   }
   nhm_rules_length = 0;
-  raw_spin_unlock(&nhm_rules_lock);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -443,7 +424,6 @@ static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, con
   if (sock_buff) { 
 
     mutex_lock(&nhm_mutex);
-    raw_spin_lock(&nhm_rules_lock);
     list_for_each_safe(ptr, next, &nhm_rules) {
       tmp = list_entry(ptr, struct nhm_list_s, list);
       if(tmp->rule.dir == NHM_DIR_BOTH) {
@@ -465,7 +445,6 @@ static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, con
 	}
       }
     }
-    raw_spin_unlock(&nhm_rules_lock);
     mutex_unlock(&nhm_mutex);
   }
   return result;
