@@ -79,7 +79,7 @@ static struct file_operations fops = {
  */
 static int __init nhm_init(void){
   int major_number;
-  printk(KERN_INFO "NHM: Initializing the NHM LKM.\n");
+  printk(KERN_INFO "[NHM] Initializing the NHM LKM.\n");
  
   // Try to dynamically allocate a major number for the device -- more difficult but worth it
   major_number = register_chrdev(NHM_MAJOR_NUMBER, NHM_DEVICE_NAME, &fops);
@@ -87,26 +87,26 @@ static int __init nhm_init(void){
     printk(KERN_ALERT "NHM failed to register a major number.\n");
     return major_number;
   }
-  printk(KERN_INFO "NHM: registered correctly with major number %d\n", NHM_MAJOR_NUMBER);
+  printk(KERN_INFO "[NHM] registered correctly with major number %d\n", NHM_MAJOR_NUMBER);
  
   // Register the device class
   nhm_class = class_create(THIS_MODULE, NHM_CLASS_NAME);
   if (IS_ERR(nhm_class)){                // Check for error and clean up if there is
     unregister_chrdev(NHM_MAJOR_NUMBER, NHM_DEVICE_NAME);
-    printk(KERN_ALERT "NHM: Failed to register device class.\n");
+    printk(KERN_ALERT "[NHM] Failed to register device class.\n");
     return PTR_ERR(nhm_class);          // Correct way to return an error on a pointer
   }
-  printk(KERN_INFO "NHM: device class registered correctly.\n");
+  printk(KERN_INFO "[NHM] device class registered correctly.\n");
  
   // Register the device driver
   nhm_device = device_create(nhm_class, NULL, MKDEV(NHM_MAJOR_NUMBER, 0), NULL, NHM_DEVICE_NAME);
   if (IS_ERR(nhm_device)){               // Clean up if there is an error
     class_destroy(nhm_class);           // Repeated code but the alternative is goto statements
     unregister_chrdev(NHM_MAJOR_NUMBER, NHM_DEVICE_NAME);
-    printk(KERN_ALERT "NHM: Failed to create the device.\n");
+    printk(KERN_ALERT "[NHM] Failed to create the device.\n");
     return PTR_ERR(nhm_device);
   }
-  printk(KERN_INFO "NHM: device class created correctly.\n"); // Made it! device was initialized
+  printk(KERN_INFO "[NHM] device class created correctly.\n"); // Made it! device was initialized
   mutex_init(&nhm_mutex);
   INIT_LIST_HEAD(&nhm_rules);
   nhm_rules_length = 0;
@@ -120,19 +120,19 @@ static int __init nhm_init(void){
  *  code is used for a built-in driver (not a LKM) that this function is not required.
  */
 static void __exit nhm_exit(void){
-  printk(KERN_INFO "NHM: Unloading the NHM LKM.\n");
+  printk(KERN_INFO "[NHM] Unloading the NHM LKM.\n");
   nhm_hook_stop();
   nhm_list_clear();
   device_destroy(nhm_class, MKDEV(NHM_MAJOR_NUMBER, 0));     // remove the device
   class_unregister(nhm_class);                          // unregister the device class
   class_destroy(nhm_class);                             // remove the device class
   unregister_chrdev(NHM_MAJOR_NUMBER, NHM_DEVICE_NAME);             // unregister the major number
-  printk(KERN_INFO "NHM: NHM LKM unloaded.\n");
+  printk(KERN_INFO "[NHM] NHM LKM unloaded.\n");
 }
  
 static int nhm_dev_open(struct inode *inodep, struct file *filep){
   if(number_opens) {
-    printk(KERN_ALERT "NHM: Device already opened.\n");
+    printk(KERN_ALERT "[NHM] Device already opened.\n");
     return -EBUSY;
   }
   number_opens++;
@@ -163,7 +163,7 @@ static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t
   if(nhm_rules_index == &nhm_rules) nhm_rules_index = nhm_rules_index->next;
   if(!nhm_rules_index) {
     mutex_unlock(&nhm_mutex);
-    printk(KERN_ALERT "NHM: Invalid list pointer\n");
+    printk(KERN_ALERT "[NHM] Invalid list pointer\n");
     return -EFAULT; 
   }
   tmp = list_entry(nhm_rules_index, struct nhm_list_s, list);
@@ -207,7 +207,7 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	  /* sanity check */
 	  new = kmalloc(sizeof(struct nhm_list_s), GFP_KERNEL);
 	  if(!new) {
-	    printk(KERN_ALERT "NHM: not enough memory.\n");
+	    printk(KERN_ALERT "[NHM] not enough memory.\n");
 	    err = -ENOMEM; 
 	  } else {
 	    /* add new rule */
