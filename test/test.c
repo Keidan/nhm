@@ -39,47 +39,17 @@ int main(){
   ret = ioctl(fd, NHM_IOCTL_ADD, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
 
-  ret = ioctl(fd, NHM_IOCTL_LENGTH, &length);
-  printf("Length: %d\n", length);
-
-  message.ip4 = nhm_to_ipv4(192, 168, 0, 2);
-  ret = ioctl(fd, NHM_IOCTL_DEL, &message);
-  printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
-
-  message.ip4 = nhm_to_ipv4(192, 168, 0, 2);
-  ret = ioctl(fd, NHM_IOCTL_DEL, &message);
-  printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
-
-  ret = ioctl(fd, NHM_IOCTL_LENGTH, &length);
-  printf("Length: %d\n", length);
-
-  ret = ioctl(fd, NHM_IOCTL_CLEAR, NULL);
-  printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
-
-  ret = ioctl(fd, NHM_IOCTL_LENGTH, &length);
-  printf("Length: %d\n", length);
-  printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
-
-
-
-  message.ip4 = nhm_to_ipv4(192, 168, 0, 1);
+  memset(&message, 0, NHM_LENGTH);
+  message.nf_type = NHM_NF_TYPE_DROP;
+  message.port[0] = 80;
   ret = ioctl(fd, NHM_IOCTL_ADD, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
-  message.ip4 = nhm_to_ipv4(192, 168, 0, 2);
-  ret = ioctl(fd, NHM_IOCTL_ADD, &message);
-  printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
+
   ret = ioctl(fd, NHM_IOCTL_LENGTH, &length);
-  printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
-  printf("Length: %d\n", length);
-  message.ip4 = nhm_to_ipv4(192, 168, 0, 3);
-  ret = ioctl(fd, NHM_IOCTL_ADD, &message);
-  printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
-  ret = ioctl(fd, NHM_IOCTL_LENGTH, &length);
-  printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
   printf("Length: %d\n", length);
 
 
-  for(i = 0; ; i++) {
+  for(i = 0; i < length; i++) {
     ret = read(fd, &message, NHM_LENGTH);        // Read the response from the LKM
     if (ret < 0){
       perror("Failed to read the message from the device.");
@@ -92,11 +62,10 @@ int main(){
     printf("%d -> prt: %d-%d\n", i, message.port[0], message.port[1]);
     printf("%d -> eth_proto: %d\n", i, message.eth_proto);
     printf("%d -> ip_proto: %d\n", i, message.ip_proto);
-    ret = ioctl(fd, NHM_IOCTL_ZERO, NULL);
-    printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
     sleep(1);
   }
 
   close(fd);
+  for(;;) sleep(1);
   return 0;
 }

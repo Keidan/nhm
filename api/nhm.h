@@ -80,7 +80,7 @@ struct nhm_s {
     unsigned short ip_proto;       /* IP protocol ID */
 };
 
-#define nhm_to_ipv4(n0, n1, n2, n3) (((n0 & 0xFF) << 24) | ((n1 & 0xFF) << 16) | ((n2 & 0xFF) << 8) | (n3 & 0xFF))
+#define nhm_to_ipv4(n0, n1, n2, n3) (((n3 & 0xFF) << 24) | ((n2 & 0xFF) << 16) | ((n1 & 0xFF) << 8) | (n0 & 0xFF))
 #define nhm_from_ipv4(bytes, offset, value) ({	\
     bytes[offset + 3] = ((value >> 24) & 0xFF);	\
     bytes[offset + 2] = ((value >> 16) & 0xFF);	\
