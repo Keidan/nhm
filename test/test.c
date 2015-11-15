@@ -19,38 +19,38 @@ int main(){
   struct sockaddr_in n;
   unsigned char buffer [4];
   printf("Starting device test code example...\n");
-  fd = open("/dev/nhm", O_RDWR);
+  fd = nhm_open();
   if (fd < 0){
     perror("Failed to open the device...");
     return errno;
   }
 
-  memset(&message, 0, NHM_LENGTH);
+  nhm_init_rule(&message);
   message.ip4 = nhm_to_ipv4(192, 168, 0, 1);
   
   nhm_from_ipv4(buffer, 0, message.ip4);
   printf("Result: %d\n", message.ip4);
   printf("Result: %d.%d.%d.%d\n", buffer[3], buffer[2], buffer[1], buffer[0]);
 
-  ret = ioctl(fd, NHM_IOCTL_ADD, &message);
+  ret = nhm_add_rule(fd, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
 
   message.ip4 = nhm_to_ipv4(192, 168, 0, 2);
-  ret = ioctl(fd, NHM_IOCTL_ADD, &message);
+  ret = nhm_add_rule(fd, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
 
   memset(&message, 0, NHM_LENGTH);
   message.nf_type = NHM_NF_TYPE_DROP;
   message.port[0] = 80;
-  ret = ioctl(fd, NHM_IOCTL_ADD, &message);
+  ret = nhm_add_rule(fd, &message);
   printf("Result: %d-%d %s\n", ret, errno, strerror(errno));
 
-  ret = ioctl(fd, NHM_IOCTL_LENGTH, &length);
+  ret = nhm_rules_size(fd, &length);
   printf("Length: %d\n", length);
 
 
   for(i = 0; i < length; i++) {
-    ret = read(fd, &message, NHM_LENGTH);        // Read the response from the LKM
+    ret = nhm_get_rule(fd, &message);        // Read the response from the LKM
     if (ret < 0){
       perror("Failed to read the message from the device.");
       return errno;
@@ -65,7 +65,7 @@ int main(){
     sleep(1);
   }
 
-  close(fd);
+  nhm_close(fd);
   for(;;) sleep(1);
   return 0;
 }
