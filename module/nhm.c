@@ -1,5 +1,40 @@
-// 'nhm' netfilter hooks
-
+/**
+*******************************************************************************
+* @file nhm.c
+* @author Keidan
+* @par Project nhm
+* @copyright Copyright 2015 Keidan, all right reserved.
+* @par License:
+* This software is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY.
+*
+* Licence summary : 
+*    You can modify and redistribute the sources code and binaries.
+*    You can send me the bug-fix
+*
+* Term of the licence in in the file licence.txt.
+*
+*  _______          __                       __    
+*  \      \   _____/  |___  _  _____________|  | __
+*  /   |   \_/ __ \   __\ \/ \/ /  _ \_  __ \  |/ /
+* /    |    \  ___/|  |  \     (  <_> )  | \/    < 
+* \____|__  /\___  >__|   \/\_/ \____/|__|  |__|_ \
+*         \/     \/                              \/
+*   ___ ___                __                      
+*  /   |   \  ____   ____ |  | __                  
+* /    ~    \/  _ \ /  _ \|  |/ /                  
+* \    Y    (  <_> |  <_> )    <                   
+*  \___|_  / \____/ \____/|__|_ \                  
+*        \/                    \/                  
+*    _____             .___    .__                 
+*   /     \   ____   __| _/_ __|  |   ____         
+*  /  \ /  \ /  _ \ / __ |  |  \  | _/ __ \        
+* /    Y    (  <_> ) /_/ |  |  /  |_\  ___/        
+* \____|__  /\____/\____ |____/|____/\___  >       
+*         \/            \/               \/   
+*
+*******************************************************************************
+*/
 
 #include <linux/version.h>	/* Needed for KERNEL_VERSION + LINUX_VERSION_CODE */
 #include <linux/init.h>           // Macros used to mark up functions e.g. __init __exit
@@ -23,41 +58,147 @@
 #include <linux/capability.h>     // Needed by capable
 #include <nhm.h>
 
+
+/****************************************************
+ * ________          _____.__                                 
+ * \______ \   _____/ ____\__| ____   ____   ______           
+ *  |    |  \_/ __ \   __\|  |/    \_/ __ \ /  ___/           
+ *  |    `   \  ___/|  |  |  |   |  \  ___/ \___ \            
+ * /_______  /\___  >__|  |__|___|  /\___  >____  >           
+ *         \/     \/              \/     \/     \/ 
+ *****************************************************/
+/**
+ * @def DRIVER_VERSION
+ * @brief The module version.
+ */
+#define DRIVER_VERSION "1.0"
+
+/**
+ * @def DRIVER_AUTHOR
+ * @brief Module author.
+ */
+#define DRIVER_AUTHOR  "Keidan (Kevin Billonneau)"
+
+/**
+ * @def DRIVER_DESC
+ * @brief Module description.
+ */
+#define DRIVER_DESC    "Netfilter Hook Module"
+
+/**
+ * @def DRIVER_LICENSE
+ * @brief Module license.
+ */
+#define DRIVER_LICENSE "GPL"
+
+/**
+ * @struct nhm_list_s
+ * @brief Globale structure.
+ */
 struct nhm_list_s {
-    struct nhm_s rule;
-    struct list_head list;
+    struct nhm_s rule;     /*!< The rule. */
+    struct list_head list; /*!< The list. */
 };
 
 
-#define DRIVER_VERSION "1.0"
-#define DRIVER_AUTHOR  "Keidan (Kevin Billonneau)"
-#define DRIVER_DESC    "Netfilter Hook Module"
-#define DRIVER_LICENSE "GPL"
+/****************************************************
+ * ___________                   __  .__                      
+ * \_   _____/_ __  ____   _____/  |_|__| ____   ____   ______
+ *  |    __)|  |  \/    \_/ ___\   __\  |/  _ \ /    \ /  ___/
+ *  |     \ |  |  /   |  \  \___|  | |  (  <_> )   |  \\___ \ 
+ *  \___  / |____/|___|  /\___  >__| |__|\____/|___|  /____  >
+ *      \/             \/     \/                    \/     \/ 
+ *****************************************************/
+/**
+ * @fn static int nhm_dev_open(struct inode *inodep, struct file *filep)
+ * @brief Open the device (/dev/nhm).
+ * @param inodep struct inode *
+ * @param filep struct file *
+ * @return The error code, 0 else.
+ */
+static int     nhm_dev_open(struct inode *inodep, struct file *filep);
 
-static int                    number_opens = 0;             ///< Counts the number of times the device is opened
-static struct class*          nhm_class  = NULL;            ///< The device-driver class struct pointer
-static struct device*         nhm_device = NULL;            ///< The device-driver device struct pointer
-static struct nf_hook_ops     nfho;
-static struct mutex           nhm_mutex;
-static struct list_head       nhm_rules;
-static struct list_head*      nhm_rules_index = NULL;
-static unsigned int           nhm_rules_length;
-static nhm_nf_type_te         nhm_nf_type = NHM_NF_TYPE_ACCEPT;
-static bool                   ipv6_support = 0;
-static unsigned char          null_hw[NHM_LEN_HW] = NHM_NULL_HW;
-static unsigned char          null_ip6[NHM_LEN_IPv6] = NHM_NULL_IPv6;
+/**
+ * @fn static int nhm_dev_release(struct inode *inodep, struct file *filep)
+ * @brief Close the device.
+ * @param inodep struct inode *
+ * @param filep struct file *
+ * @return The error code, 0 else.
+ */
+static int     nhm_dev_release(struct inode *inodep, struct file *filep);
 
-static int     nhm_dev_open(struct inode *, struct file *);
-static int     nhm_dev_release(struct inode *, struct file *);
-static ssize_t nhm_dev_read(struct file *, char *, size_t, loff_t *);
+/**
+ * @fn static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset)
+ * @brief Read function.
+ * @param filep struct file *
+ * @param buffer char *
+ * @param len size_t
+ * @param offset loff_t *
+ * @return The read length, else the error code.
+ */
+static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset);
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
+/**
+ * @fn static int nhm_dev_ioctl(struct inode *i, struct file *file, unsigned int cmd, unsigned long arg)
+ * @brief ioctl function.
+ * @param i struct inode *
+ * @param file struct file *
+ * @param cmd unsigned int
+ * @param arg unsigned long
+ * @return The error code, 0 else.
+ */
 static int     nhm_dev_ioctl(struct inode *i, struct file *file, unsigned int cmd, unsigned long arg);
 #else
+/**
+ * @fn static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ * @brief ioctl function.
+ * @param file struct file *
+ * @param cmd unsigned int
+ * @param arg unsigned long
+ * @return The error code, 0 else.
+ */
 static long    nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 #endif
+
+/**
+ * @fn static void nhm_hook_start(void)
+ * @brief Initialize and registers the hook module.
+ */
 static void    nhm_hook_start(void);
+
+/**
+ * @fn static void nhm_hook_stop(void)
+ * @brief Unregister the hook module.
+ */
 static void    nhm_hook_stop(void);
+
+/**
+ * @fn static void nhm_list_clear(void)
+ * @brief Clear the rules list.
+ */
 static void    nhm_list_clear(void);
+
+/****************************************************
+ * ____   ____            .__      ___.   .__                 
+ * \   \ /   /____ _______|__|____ \_ |__ |  |   ____   ______
+ *  \   Y   /\__  \\_  __ \  \__  \ | __ \|  | _/ __ \ /  ___/
+ *   \     /  / __ \|  | \/  |/ __ \| \_\ \  |_\  ___/ \___ \ 
+ *    \___/  (____  /__|  |__(____  /___  /____/\___  >____  >
+ *                \/              \/    \/          \/     \/
+ *****************************************************/
+static int                    number_opens = 0;                       /*!< Counts the number of times the device is opened. */
+static struct class*          nhm_class  = NULL;                      /*!< The device-driver class struct pointer. */
+static struct device*         nhm_device = NULL;                      /*!< The device-driver device struct pointer. */
+static struct nf_hook_ops     nfho;                                   /*!< netfilter hook object. */
+static struct mutex           nhm_mutex;                              /*!< Globale mutex. */
+static struct list_head       nhm_rules;                              /*!< List of rules. */
+static struct list_head*      nhm_rules_index = NULL;                 /*!< List ptr used by the read function. */
+static unsigned int           nhm_rules_length;                       /*!< Number of rules. */
+static nhm_nf_type_te         nhm_nf_type = NHM_NF_TYPE_ACCEPT;       /*!< Default netfilter type. */
+static bool                   ipv6_support = 0;                       /*!< Test if the IPv6 should be supported. */
+static unsigned char          null_hw[NHM_LEN_HW] = NHM_NULL_HW;      /*!< Representation of the null hw address. */
+static unsigned char          null_ip6[NHM_LEN_IPv6] = NHM_NULL_IPv6; /*!< Representation of the null IPv6 address. */
 
 static struct file_operations fops = {
   .open = nhm_dev_open,
@@ -69,13 +210,23 @@ static struct file_operations fops = {
 #endif
   .release = nhm_dev_release,
 };
- 
-/** 
- *  @brief The LKM initialization function
- *  The static keyword restricts the visibility of the function to within this C file. The __init
- *  macro means that for a built-in driver (not a LKM) the function is only used at initialization
- *  time and that it can be discarded and its memory freed up after that point.
- *  @return returns 0 if successful
+
+
+/****************************************************
+ * _________            .___                          .___    .__          
+ * \_   ___ \  ____   __| _/____     _____   ____   __| _/_ __|  |   ____  
+ * /    \  \/ /  _ \ / __ |/ __ \   /     \ /  _ \ / __ |  |  \  | _/ __ \ 
+ * \     \___(  <_> ) /_/ \  ___/  |  Y Y  (  <_> ) /_/ |  |  /  |_\  ___/ 
+ *  \______  /\____/\____ |\___  > |__|_|  /\____/\____ |____/|____/\___  >
+ *         \/            \/    \/        \/            \/               \/ 
+ *****************************************************/
+/**
+ * @fn static int __init nhm_init(void)
+ * @brief The LKM initialization function.
+ * The static keyword restricts the visibility of the function to within this C file. The __init
+ * macro means that for a built-in driver (not a LKM) the function is only used at initialization
+ * time and that it can be discarded and its memory freed up after that point.
+ * @return returns 0 if successful
  */
 static int __init nhm_init(void){
   int major_number;
@@ -114,10 +265,11 @@ static int __init nhm_init(void){
   return 0;
 }
  
-/** 
- *  @brief The LKM cleanup function
- *  Similar to the initialization function, it is static. The __exit macro notifies that if this
- *  code is used for a built-in driver (not a LKM) that this function is not required.
+/**
+ * @fn static void __exit nhm_exit(void)
+ * @brief The LKM cleanup function.
+ * Similar to the initialization function, it is static. The __exit macro notifies that if this
+ * code is used for a built-in driver (not a LKM) that this function is not required.
  */
 static void __exit nhm_exit(void){
   printk(KERN_INFO "[NHM] Unloading the NHM LKM.\n");
@@ -129,7 +281,22 @@ static void __exit nhm_exit(void){
   unregister_chrdev(NHM_MAJOR_NUMBER, NHM_DEVICE_NAME);             // unregister the major number
   printk(KERN_INFO "[NHM] NHM LKM unloaded.\n");
 }
- 
+
+/****************************************************
+ * _________            .___           .___          .__              
+ * \_   ___ \  ____   __| _/____     __| _/_______  _|__| ____  ____  
+ * /    \  \/ /  _ \ / __ |/ __ \   / __ |/ __ \  \/ /  |/ ___\/ __ \ 
+ * \     \___(  <_> ) /_/ \  ___/  / /_/ \  ___/\   /|  \  \__\  ___/ 
+ *  \______  /\____/\____ |\___  > \____ |\___  >\_/ |__|\___  >___  >
+ *         \/            \/    \/       \/    \/             \/    \/ 
+ *****************************************************/
+/**
+ * @fn static int nhm_dev_open(struct inode *inodep, struct file *filep)
+ * @brief Open the device (/dev/nhm).
+ * @param inodep struct inode *
+ * @param filep struct file *
+ * @return The error code, 0 else.
+ */
 static int nhm_dev_open(struct inode *inodep, struct file *filep){
   if(number_opens) {
     printk(KERN_ALERT "[NHM] Device already opened.\n");
@@ -140,11 +307,24 @@ static int nhm_dev_open(struct inode *inodep, struct file *filep){
   return 0;
 }
 
+/**
+ * @fn static int nhm_dev_release(struct inode *inodep, struct file *filep)
+ * @brief Close the device.
+ * @param inodep struct inode *
+ * @param filep struct file *
+ * @return The error code, 0 else.
+ */
 static int nhm_dev_release(struct inode *inodep, struct file *filep){
   number_opens--;
   return 0;
 }
 
+/**
+ * @fn static void nhm_print_rule(const char* title, struct nhm_s *message)
+ * @brief Print the current rule.
+ * @param title The title.
+ * @param message The message to print.
+ */
 static void nhm_print_rule(const char* title, struct nhm_s *message) {
   unsigned char buffer [4];
   printk(KERN_INFO "[NHM] %s %s dir: %s\n", title, message->dev,
@@ -156,6 +336,15 @@ static void nhm_print_rule(const char* title, struct nhm_s *message) {
   printk(KERN_INFO "[NHM] Proto: eth-%d, ip-%d\n", message->eth_proto, message->ip_proto);
 }
 
+/**
+ * @fn static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset)
+ * @brief Read function.
+ * @param filep struct file *
+ * @param buffer char *
+ * @param len size_t
+ * @param offset loff_t *
+ * @return The read length, else the error code.
+ */
 static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
   int error_count = 0, size = NHM_LENGTH;
   struct nhm_list_s *tmp;
@@ -182,8 +371,25 @@ static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t
 
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
+/**
+ * @fn static int nhm_dev_ioctl(struct inode *i, struct file *file, unsigned int cmd, unsigned long arg)
+ * @brief ioctl function.
+ * @param i struct inode *
+ * @param file struct file *
+ * @param cmd unsigned int
+ * @param arg unsigned long
+ * @return The error code, 0 else.
+ */
 static int nhm_dev_ioctl(struct inode *i, struct file *file, unsigned int cmd, unsigned long arg) {
 #else
+/**
+ * @fn static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ * @brief ioctl function.
+ * @param file struct file *
+ * @param cmd unsigned int
+ * @param arg unsigned long
+ * @return The error code, 0 else.
+ */
 static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
 #endif
   int err = 0;
@@ -286,6 +492,19 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
   return err;
 }
 
+
+/****************************************************
+ * _________            .___       .__                   __    
+ * \_   ___ \  ____   __| _/____   |  |__   ____   ____ |  | __
+ * /    \  \/ /  _ \ / __ |/ __ \  |  |  \ /  _ \ /  _ \|  |/ /
+ * \     \___(  <_> ) /_/ \  ___/  |   Y  (  <_> |  <_> )    < 
+ *  \______  /\____/\____ |\___  > |___|  /\____/ \____/|__|_ \
+ *         \/            \/    \/       \/                   \/
+ *****************************************************/
+/**
+ * @fn static void nhm_list_clear(void)
+ * @brief Clear the rules list.
+ */
 static void nhm_list_clear(void) {
   struct list_head *ptr, *next;
   struct nhm_list_s *tmp;
@@ -297,8 +516,12 @@ static void nhm_list_clear(void) {
   nhm_rules_length = 0;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////
-
+/**
+ * @fn static inline unsigned int nhm_get_type(nhm_nf_type_te nhm_nf_type)
+ * @brief Convert the netfilter type.
+ * @param type The type to convert.
+ * @return The converted type.
+ */
 static inline unsigned int nhm_get_type(nhm_nf_type_te nhm_nf_type) {
   if(nhm_nf_type == NHM_NF_TYPE_ACCEPT) return NF_ACCEPT;
   else if(nhm_nf_type == NHM_NF_TYPE_DROP) return NF_DROP;
@@ -452,7 +675,7 @@ static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, con
 
 /**
  * @fn static void nhm_hook_start(void)
- * @brief Start the netfilter hook.
+ * @brief Initialize and registers the hook module.
  */
 static void nhm_hook_start(void) {
   nfho.hook = nhm_hook_func;
@@ -465,13 +688,20 @@ static void nhm_hook_start(void) {
 
 /**
  * @fn static void nhm_hook_stop(void)
- * @brief Stop the netfilter hook.
+ * @brief Unregister the hook module.
  */
 static void nhm_hook_stop(void) {
    nf_unregister_hook(&nfho);
 }
- 
-/////////////////////////////////////////////////////////////////////////////////////////
+
+/****************************************************
+ *    _____             .___    .__           .__       .__  __   
+ *   /     \   ____   __| _/_ __|  |   ____   |__| ____ |__|/  |_ 
+ *  /  \ /  \ /  _ \ / __ |  |  \  | _/ __ \  |  |/    \|  \   __\
+ * /    Y    (  <_> ) /_/ |  |  /  |_\  ___/  |  |   |  \  ||  |  
+ * \____|__  /\____/\____ |____/|____/\___  > |__|___|  /__||__|  
+ *         \/            \/               \/          \/    
+ *****************************************************/
 /* module parameters */
 module_param(ipv6_support, bool, 0);
 MODULE_PARM_DESC(ipv6_support, "1 to enable the support of the IPv6 packets, 0 else.");
