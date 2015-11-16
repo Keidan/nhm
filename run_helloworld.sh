@@ -15,6 +15,6 @@ leave() {
 
 echo "Insert module ./module/nhm.ko"
 insmod ./module/nhm.ko
-echo "Excecute test app"
-./test/nhm_test.elf
+echo "Excecute helloworld app"
+./demo/helloworld/helloworld.elf
 leave

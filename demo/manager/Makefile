@@ -1,9 +1,9 @@
-BINTEST    		= nhm.elf
+BINTEST    		= manager.elf
 TYPEOS     		= LINUX
 CC         		= gcc
 ERROR_FLAGS             = -Wall -W -pedantic
 DEBUG_FLAGS             = -g -O0
-INC_FLAGS               = -I$(PWD)/../api
+INC_FLAGS               = -I$(PWD)/../../api
 
 # Compiler
 GLIB_CFLAGS = $$(pkg-config --cflags glib-2.0)
@@ -21,7 +21,7 @@ LDFLAGS = $(DEBUG_FLAGS) $(INC_FLAGS) $(ERROR_FLAGS) $(GLIB_LDFLAGS) $(PANGO_LDF
 all: $(BINTEST)
 
 
-$(BINTEST): nhm.o
+$(BINTEST): manager.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 %.o:%.c 

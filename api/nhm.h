@@ -39,6 +39,12 @@
 #define __NHM_H__
 
 #include <linux/ioctl.h>
+#ifndef _LINUX_MODULE_H
+#include <unistd.h>
+#include <sys/ioctl.h>
+#else
+#include <linux/ioctl.h>
+#endif
 
 /****************************************************
  * _________ ________    _______ ___________.___  ________ 
@@ -197,12 +203,12 @@ struct nhm_s {
  * @param[in] offset The possible bytes offset.
  * @param[in] value The value the transform.
  */
-#define nhm_from_ipv4(bytes, offset, value) ({	\
-    bytes[offset + 3] = ((value >> 24) & 0xFF);	\
-    bytes[offset + 2] = ((value >> 16) & 0xFF);	\
-    bytes[offset + 1] = ((value >> 8) & 0xFF);	\
-    bytes[offset] = (value & 0xFF);		\
-  })
+#define nhm_from_ipv4(bytes, offset, value) do {	\
+    bytes[offset + 3] = ((value >> 24) & 0xFF);		\
+    bytes[offset + 2] = ((value >> 16) & 0xFF);		\
+    bytes[offset + 1] = ((value >> 8) & 0xFF);		\
+    bytes[offset] = (value & 0xFF);			\
+  } while(0)
 
 /**
  * @def nhm_is_same(n1, n2)
