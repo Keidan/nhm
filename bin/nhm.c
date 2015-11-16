@@ -44,14 +44,25 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
+#include <gtk/gtk.h>
 
 static struct nhm_s message;
  
-int main(){
+int main(int argc, char** argv){
   int i, ret, fd, length;
   struct sockaddr_in n;
   unsigned char buffer [4];
+  GtkWidget* window;
+
+  gtk_init(&argc, &argv);
+
+  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title(GTK_WINDOW(window), "NHM Manager");
+  gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+    g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(gtk_main_quit), NULL);
+  gtk_widget_show_all(window);
+
+  /*
   printf("Open the connection between the the application and the device...\n");
   fd = nhm_open();
   if (fd < 0){
@@ -101,6 +112,8 @@ int main(){
   }
 
   nhm_close(fd);
-  for(;;) sleep(1);
-  return 0;
+  */
+
+  gtk_main();
+  return EXIT_SUCCESS;
 }
