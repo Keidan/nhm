@@ -1,3 +1,39 @@
+/**
+*******************************************************************************
+* @file nhm.c
+* @author Keidan
+* @par Project nhm
+* @copyright Copyright 2015 Keidan, all right reserved.
+* @par License:
+* This software is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY.
+*
+* Licence summary : 
+*    You can modify and redistribute the sources code and binaries.
+*    You can send me the bug-fix
+*
+* Term of the licence in in the file licence.txt.
+*
+*  _______          __                       __    
+*  \      \   _____/  |___  _  _____________|  | __
+*  /   |   \_/ __ \   __\ \/ \/ /  _ \_  __ \  |/ /
+* /    |    \  ___/|  |  \     (  <_> )  | \/    < 
+* \____|__  /\___  >__|   \/\_/ \____/|__|  |__|_ \
+*         \/     \/                              \/
+*   ___ ___                __                      
+*  /   |   \  ____   ____ |  | __                  
+* /    ~    \/  _ \ /  _ \|  |/ /                  
+* \    Y    (  <_> |  <_> )    <                   
+*  \___|_  / \____/ \____/|__|_ \                  
+*        \/                    \/                  
+* __________.__                            
+* \______   \__| ____ _____ _______ ___.__.
+*  |    |  _/  |/    \\__  \\_  __ <   |  |
+*  |    |   \  |   |  \/ __ \|  | \/\___  |
+*  |______  /__|___|  (____  /__|   / ____|
+*         \/        \/     \/       \/     
+*******************************************************************************
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -5,8 +41,6 @@
 #include <errno.h>
 #include <string.h>
 #include <nhm.h>
-
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -18,12 +52,13 @@ int main(){
   int i, ret, fd, length;
   struct sockaddr_in n;
   unsigned char buffer [4];
-  printf("Starting device test code example...\n");
+  printf("Open the connection between the the application and the device...\n");
   fd = nhm_open();
   if (fd < 0){
     perror("Failed to open the device...");
     return errno;
   }
+  printf("Connection established between theapplication and the device\n");
 
   nhm_init_rule(&message);
   message.ip4 = nhm_to_ipv4(192, 168, 0, 1);

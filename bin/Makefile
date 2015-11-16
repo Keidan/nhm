@@ -1,4 +1,4 @@
-BINTEST    		= nhm_test.elf
+BINTEST    		= nhm.elf
 TYPEOS     		= LINUX
 CC         		= gcc
 CFLAG      		= -g -O0 -I$(PWD)/../api -D$(TYPEOS)
@@ -6,7 +6,7 @@ CFLAG      		= -g -O0 -I$(PWD)/../api -D$(TYPEOS)
 all: $(BINTEST)
 
 
-$(BINTEST): test.o
+$(BINTEST): nhm.o
 	$(CC) $(CFLAG) $^ -o $@
 
 %.o:%.c 
