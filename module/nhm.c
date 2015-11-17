@@ -320,20 +320,20 @@ static int nhm_dev_release(struct inode *inodep, struct file *filep){
 }
 
 /**
- * @fn static void nhm_print_rule(const char* title, struct nhm_s *message)
+ * @fn static void nhm_print_rule(const char* title, struct nhm_s *rule)
  * @brief Print the current rule.
  * @param title The title.
- * @param message The message to print.
+ * @param rule The rule to print.
  */
-static void nhm_print_rule(const char* title, struct nhm_s *message) {
+static void nhm_print_rule(const char* title, struct nhm_s *rule) {
   unsigned char buffer [4];
-  printk(KERN_INFO "[NHM] %s %s dir: %s\n", title, message->dev,
-	 (message->dir == NHM_DIR_INPUT ? "input" : (message->dir == NHM_DIR_OUTPUT ? "output" : "both")));
+  printk(KERN_INFO "[NHM] %s %s dir: %s\n", title, rule->dev,
+	 (rule->dir == NHM_DIR_INPUT ? "input" : (rule->dir == NHM_DIR_OUTPUT ? "output" : "both")));
   printk(KERN_INFO "[NHM] HWaddr: %02x:%02x:%02x:%02x:%02x:%02x\n",
-	 message->hw[0], message->hw[1], message->hw[2], message->hw[3], message->hw[4], message->hw[5]);
-  nhm_from_ipv4(buffer, 0, message->ip4);
-  printk(KERN_INFO "[NHM] IPv4: %d.%d.%d.%d:[%d-%d]\n", buffer[0], buffer[1], buffer[2], buffer[3], message->port[0], message->port[1]);
-  printk(KERN_INFO "[NHM] Proto: eth-%d, ip-%d\n", message->eth_proto, message->ip_proto);
+	 rule->hw[0], rule->hw[1], rule->hw[2], rule->hw[3], rule->hw[4], rule->hw[5]);
+  nhm_from_ipv4(buffer, 0, rule->ip4);
+  printk(KERN_INFO "[NHM] IPv4: %d.%d.%d.%d:[%d-%d]\n", buffer[0], buffer[1], buffer[2], buffer[3], rule->port[0], rule->port[1]);
+  printk(KERN_INFO "[NHM] Proto: eth-%d, ip-%d\n", rule->eth_proto, rule->ip_proto);
 }
 
 /**
@@ -395,7 +395,7 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
   int err = 0;
   struct list_head *ptr, *next;
   struct nhm_list_s *new, *tmp;
-  struct nhm_s message;
+  struct nhm_s rule;
   char* user_buffer = (char*)arg;
   mutex_lock(&nhm_mutex);
   switch(cmd) {
@@ -405,11 +405,11 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	err = -EPERM;
       } else {
 	/* copy for user space */
-	if(copy_from_user(&message, user_buffer, NHM_LENGTH)) {
+	if(copy_from_user(&rule, user_buffer, NHM_LENGTH)) {
 	  printk(KERN_ALERT "[NHM] The copy from user failed\n");
 	  err = -EIO;
 	} else {
-	  nhm_print_rule("Add new rule", &message);
+	  nhm_print_rule("Add new rule", &rule);
 	  /* sanity check */
 	  new = kmalloc(sizeof(struct nhm_list_s), GFP_KERNEL);
 	  if(!new) {
@@ -417,7 +417,7 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	    err = -ENOMEM; 
 	  } else {
 	    /* add new rule */
-	    memcpy(&new->rule, &message, NHM_LENGTH);
+	    memcpy(&new->rule, &rule, NHM_LENGTH);
 	    memset(&new->list, 0, sizeof(struct list_head));
 	    //INIT_LIST_HEAD(&new->list);
 	    nhm_rules_length++;
@@ -433,14 +433,14 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	err = -EPERM;
       } else {
 	/* copy for user space */
-	if(copy_from_user(&message, user_buffer, NHM_LENGTH)) {
+	if(copy_from_user(&rule, user_buffer, NHM_LENGTH)) {
 	  printk(KERN_ALERT "[NHM] The copy from user failed\n");
 	  err = -EIO;
 	} else {
 	  list_for_each_safe(ptr, next, &nhm_rules) {
 	    tmp = list_entry(ptr, struct nhm_list_s, list);
-	    if(nhm_is_same(&message, &tmp->rule)) {
-	      nhm_print_rule("Remove rule", &message);
+	    if(nhm_is_same(&rule, &tmp->rule)) {
+	      nhm_print_rule("Remove rule", &rule);
 	      nhm_rules_length--;
 	      list_del(ptr);
 	      kfree(tmp);
