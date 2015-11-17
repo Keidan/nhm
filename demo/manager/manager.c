@@ -34,12 +34,15 @@
 #include <gtk/gtk.h>
 
 struct gtk_ctx_s {
-  GtkWidget* window;
-  GtkStatusIcon *statusIcon;
+    GtkWidget* window;
+    GtkStatusIcon *statusIcon;
     GtkWidget* menu;
     GtkWidget* menuItemView;
     GtkWidget* menuItemExit;
     GtkWidget* menuItemSeparator;
+
+    GtkWidget *listView;
+    GtkListStore *listStore;
 };
 
 
@@ -50,7 +53,7 @@ struct gtk_ctx_s {
  * @param status_icon status_icon
  * @param p_data p_data
  */
-static void gtk_status_icon_activate (GtkStatusIcon * pStatusIcon, gpointer p_data);
+static void gtk_status_icon_activate(GtkStatusIcon * pStatusIcon, gpointer p_data);
 
 /**
  * @fn static void gtk_status_icon_popup(GtkStatusIcon *status_icon, guint button, guint32 activate_time, gpointer p_data)
@@ -67,11 +70,15 @@ static void gtk_status_icon_popup(GtkStatusIcon *status_icon, guint button, guin
 
  
 int main(int argc, char** argv){
-
+  GtkCellRenderer *cellRenderer;
+  GtkTreeViewColumn* column;
+  GtkWidget *scrollbar, *vBox;
   struct gtk_ctx_s ctx;
   memset(&ctx, 0, sizeof(struct gtk_ctx_s));
   /* initialize the threads stack. */
+#if !GLIB_CHECK_VERSION(2,32,0)
   g_thread_init(NULL);
+#endif
   /* initialize GDK. */
   gdk_threads_init();
   /* initialize GTK. */
@@ -100,6 +107,36 @@ int main(int argc, char** argv){
   gtk_menu_shell_append (GTK_MENU_SHELL (ctx.menu), ctx.menuItemExit);
   gtk_widget_show_all (ctx.menu);
 
+  /* Create the list model */
+  ctx.listStore = gtk_list_store_new(7, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_ULONG);
+  ctx.listView = gtk_tree_view_new_with_model(GTK_TREE_MODEL(ctx.listStore));
+  /* create the first column */
+  cellRenderer = gtk_cell_renderer_text_new();
+  column = gtk_tree_view_column_new_with_attributes("Device", cellRenderer, "text", 0, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
+  column = gtk_tree_view_column_new_with_attributes("Type", cellRenderer, "text", 1, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
+  column = gtk_tree_view_column_new_with_attributes("Dir", cellRenderer, "text", 2, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
+  column = gtk_tree_view_column_new_with_attributes("Proto", cellRenderer, "text", 3, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
+  column = gtk_tree_view_column_new_with_attributes("HW", cellRenderer, "text", 4, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
+  column = gtk_tree_view_column_new_with_attributes("IP", cellRenderer, "text", 5, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
+  column = gtk_tree_view_column_new_with_attributes("Applied", cellRenderer, "text", 6, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
+ 
+  /* create the main container */
+  vBox = gtk_vbox_new(FALSE, 0);
+  gtk_container_add(GTK_CONTAINER(ctx.window), vBox);
+  scrollbar = gtk_scrolled_window_new(NULL, NULL);
+  /* add the list to the scrollbar and the scrollbar to the main container */
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrollbar), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_container_add(GTK_CONTAINER(scrollbar),ctx.listView);
+  gtk_box_pack_start(GTK_BOX(vBox), scrollbar, TRUE, TRUE, 0);
+
+    
   /* add all the signals */
   g_signal_connect(G_OBJECT(ctx.window), "delete-event", G_CALLBACK(gtk_main_quit), NULL);
   g_signal_connect (G_OBJECT(ctx.statusIcon), "activate", G_CALLBACK(gtk_status_icon_activate), &ctx);
@@ -137,7 +174,7 @@ static void gtk_status_icon_popup(GtkStatusIcon *status_icon, guint button, guin
  * @param status_icon status_icon
  * @param p_data p_data
  */
-static void gtk_status_icon_activate (GtkStatusIcon * status_icon, gpointer p_data) {
+static void gtk_status_icon_activate(GtkStatusIcon * status_icon, gpointer p_data) {
   struct gtk_ctx_s *ctx = (struct gtk_ctx_s*)p_data;
  
   g_return_if_fail(status_icon != NULL);
