@@ -44,8 +44,10 @@ struct gtk_ctx_s {
     GtkWidget *listView;
     GtkListStore *listStore;
 };
-
-
+static char *columns_header[] = {
+  "Device", "Type", "Dir", "Proto", "HW", "IP", "Applied"
+};
+#define COLUMNS_HEADER_LENGTH (sizeof(columns_header) / sizeof(columns_header[0]))
 
 /**
  * @fn static void gtk_status_icon_activate (GtkStatusIcon * status_icon, gpointer p_data)
@@ -73,6 +75,7 @@ int main(int argc, char** argv){
   GtkCellRenderer *cellRenderer;
   GtkTreeViewColumn* column;
   GtkWidget *scrollbar, *vBox;
+  unsigned int i;
   struct gtk_ctx_s ctx;
   memset(&ctx, 0, sizeof(struct gtk_ctx_s));
   /* initialize the threads stack. */
@@ -108,24 +111,14 @@ int main(int argc, char** argv){
   gtk_widget_show_all (ctx.menu);
 
   /* Create the list model */
-  ctx.listStore = gtk_list_store_new(7, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_ULONG);
+  ctx.listStore = gtk_list_store_new(COLUMNS_HEADER_LENGTH, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_ULONG);
   ctx.listView = gtk_tree_view_new_with_model(GTK_TREE_MODEL(ctx.listStore));
   /* create the first column */
   cellRenderer = gtk_cell_renderer_text_new();
-  column = gtk_tree_view_column_new_with_attributes("Device", cellRenderer, "text", 0, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
-  column = gtk_tree_view_column_new_with_attributes("Type", cellRenderer, "text", 1, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
-  column = gtk_tree_view_column_new_with_attributes("Dir", cellRenderer, "text", 2, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
-  column = gtk_tree_view_column_new_with_attributes("Proto", cellRenderer, "text", 3, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
-  column = gtk_tree_view_column_new_with_attributes("HW", cellRenderer, "text", 4, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
-  column = gtk_tree_view_column_new_with_attributes("IP", cellRenderer, "text", 5, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
-  column = gtk_tree_view_column_new_with_attributes("Applied", cellRenderer, "text", 6, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
+  for(i = 0; i < COLUMNS_HEADER_LENGTH; i++) {
+    column = gtk_tree_view_column_new_with_attributes(columns_header[i], cellRenderer, "text", i, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(ctx.listView), column);
+  }
  
   /* create the main container */
   vBox = gtk_vbox_new(FALSE, 0);
