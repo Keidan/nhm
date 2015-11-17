@@ -329,6 +329,7 @@ static void nhm_print_rule(const char* title, struct nhm_s *rule) {
   unsigned char buffer [4];
   printk(KERN_INFO "[NHM] %s %s dir: %s\n", title, rule->dev,
 	 (rule->dir == NHM_DIR_INPUT ? "input" : (rule->dir == NHM_DIR_OUTPUT ? "output" : "both")));
+  printk(KERN_INFO "[NHM] Applied %ld times\n", rule->applied);
   printk(KERN_INFO "[NHM] HWaddr: %02x:%02x:%02x:%02x:%02x:%02x\n",
 	 rule->hw[0], rule->hw[1], rule->hw[2], rule->hw[3], rule->hw[4], rule->hw[5]);
   nhm_from_ipv4(buffer, 0, rule->ip4);
@@ -418,6 +419,7 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	  } else {
 	    /* add new rule */
 	    memcpy(&new->rule, &rule, NHM_LENGTH);
+	    new->rule.applied = 0L;
 	    memset(&new->list, 0, sizeof(struct list_head));
 	    //INIT_LIST_HEAD(&new->list);
 	    nhm_rules_length++;
@@ -622,6 +624,7 @@ static char nhm_hook_test_rule(const struct net_device *idevice, const struct ne
 	       || (rule->port[0] && !rule->port[1] && packet_r->port[0] == rule->port[0])
 	       || (!rule->port[0] && rule->port[1] && packet_r->port[0] == rule->port[1])
 	       || (!rule->port[0] && !rule->port[1])) {
+	      rule->applied++;
 	      return 1; /* consume the packet */
 	    }
 	  }

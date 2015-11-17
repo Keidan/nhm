@@ -175,6 +175,7 @@ struct nhm_s {
     unsigned short port[2];               /*!< Port value or range. */
     unsigned short eth_proto;             /*!< Ethernet protocol ID */
     unsigned short ip_proto;              /*!< IP protocol ID */
+    unsigned long  applied;               /*!< Simple counter to obtain the number of times the rule is applied.*/
 };
 
 /****************************************************
