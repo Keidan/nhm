@@ -7,11 +7,19 @@ nhm
 
 This module is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
 
+
+
 Instructions
 ============
 
 
-To compile this module you should have the kernel source headers.
+Make targets:
+
+     module: To execute this target correctly, you should have the kernel source headers.
+     demo: To execute this target correctly, you should have the GTK2 devel package.
+     all: Build the module and the demo targets.
+     clean: Clean the generated files.
+
 
 Download the software :
 
@@ -20,7 +28,17 @@ Download the software :
 	git clone git://github.com/Keidan/nhm.git
 	cd nhm
 	make
-	insmod module/nhm.ko or insmod module/nhm.ko ipv6_support=1
+
+
+Insert the module:
+
+	insmod module/nhm.ko
+
+
+Or with the support of the IPv6:
+
+	insmod module/nhm.ko ipv6_support=1
+
 
 
 Udev
@@ -34,7 +52,7 @@ To get the UDEV information (after inserting the module):
 
 To insert the module with the specific rights:
 
-	KERNEL=="nhm", SUBSYSTEM=="nhm", MODE="0666", GROUP="nhmgroup"
+	KERNEL=="nhm", SUBSYSTEM=="nhm", MODE="0666", GROUP="plugdev"
 
 
 
@@ -46,7 +64,7 @@ The NHM module offers an API (api/nhm.h) specifying the transfered datas format 
 
 You can also read the device (/dev/nhm) to obtain the list of the rules known by the module (circular buffer).
 
-A sample code explaining how to communicate with the nhm module is available into the test folder.
+The demo codes which explain how to communicate with the nhm module are availables into the demo folder.
   
 
 License (like GPL)
