@@ -298,6 +298,10 @@ static void __exit nhm_exit(void){
  * @return The error code, 0 else.
  */
 static int nhm_dev_open(struct inode *inodep, struct file *filep){
+  if(!capable(CAP_NET_ADMIN)) {
+    printk(KERN_ALERT "[NHM] The CAP_NET_ADMIN not set!\n");
+    return -EPERM;
+  }
   if(number_opens) {
     printk(KERN_ALERT "[NHM] Device already opened.\n");
     return -EBUSY;
@@ -401,53 +405,43 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
   mutex_lock(&nhm_mutex);
   switch(cmd) {
     case NHM_IOCTL_ADD: {
-      if(!capable(CAP_NET_ADMIN)) {
-	printk(KERN_ALERT "[NHM] The CAP_NET_ADMIN not set!\n");
-	err = -EPERM;
+      /* copy for user space */
+      if(copy_from_user(&rule, user_buffer, NHM_LENGTH)) {
+	printk(KERN_ALERT "[NHM] The copy from user failed\n");
+	err = -EIO;
       } else {
-	/* copy for user space */
-	if(copy_from_user(&rule, user_buffer, NHM_LENGTH)) {
-	  printk(KERN_ALERT "[NHM] The copy from user failed\n");
-	  err = -EIO;
+	nhm_print_rule("Add new rule", &rule);
+	/* sanity check */
+	new = kmalloc(sizeof(struct nhm_list_s), GFP_KERNEL);
+	if(!new) {
+	  printk(KERN_ALERT "[NHM] not enough memory.\n");
+	  err = -ENOMEM; 
 	} else {
-	  nhm_print_rule("Add new rule", &rule);
-	  /* sanity check */
-	  new = kmalloc(sizeof(struct nhm_list_s), GFP_KERNEL);
-	  if(!new) {
-	    printk(KERN_ALERT "[NHM] not enough memory.\n");
-	    err = -ENOMEM; 
-	  } else {
-	    /* add new rule */
-	    memcpy(&new->rule, &rule, NHM_LENGTH);
-	    new->rule.applied = 0L;
-	    memset(&new->list, 0, sizeof(struct list_head));
-	    //INIT_LIST_HEAD(&new->list);
-	    nhm_rules_length++;
-	    list_add_tail(&new->list, &nhm_rules);
-	  }
+	  /* add new rule */
+	  memcpy(&new->rule, &rule, NHM_LENGTH);
+	  new->rule.applied = 0L;
+	  memset(&new->list, 0, sizeof(struct list_head));
+	  //INIT_LIST_HEAD(&new->list);
+	  nhm_rules_length++;
+	  list_add_tail(&new->list, &nhm_rules);
 	}
       }
       break;
     }
     case NHM_IOCTL_DEL: {
-      if(!capable(CAP_NET_ADMIN)) {
-	printk(KERN_ALERT "[NHM] The CAP_NET_ADMIN not set!\n");
-	err = -EPERM;
+      /* copy for user space */
+      if(copy_from_user(&rule, user_buffer, NHM_LENGTH)) {
+	printk(KERN_ALERT "[NHM] The copy from user failed\n");
+	err = -EIO;
       } else {
-	/* copy for user space */
-	if(copy_from_user(&rule, user_buffer, NHM_LENGTH)) {
-	  printk(KERN_ALERT "[NHM] The copy from user failed\n");
-	  err = -EIO;
-	} else {
-	  list_for_each_safe(ptr, next, &nhm_rules) {
-	    tmp = list_entry(ptr, struct nhm_list_s, list);
-	    if(nhm_is_same(&rule, &tmp->rule)) {
-	      nhm_print_rule("Remove rule", &rule);
-	      nhm_rules_length--;
-	      list_del(ptr);
-	      kfree(tmp);
-	      break;
-	    }
+	list_for_each_safe(ptr, next, &nhm_rules) {
+	  tmp = list_entry(ptr, struct nhm_list_s, list);
+	  if(nhm_is_same(&rule, &tmp->rule)) {
+	    nhm_print_rule("Remove rule", &rule);
+	    nhm_rules_length--;
+	    list_del(ptr);
+	    kfree(tmp);
+	    break;
 	  }
 	}
       }
@@ -458,12 +452,7 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
       break;
     }
     case NHM_IOCTL_CLEAR: {
-      if(!capable(CAP_NET_ADMIN)) {
-	printk(KERN_ALERT "[NHM] The CAP_NET_ADMIN not set!\n");
-	err = -EPERM;
-      } else
-	nhm_list_clear();
-      
+      nhm_list_clear();      
       break;
     }
     case NHM_IOCTL_LENGTH: {
@@ -474,16 +463,10 @@ static long nhm_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
       break;
     }
     case NHM_IOCTL_NF_TYPE: {
-      if(!capable(CAP_NET_ADMIN)) {
-	printk(KERN_ALERT "[NHM] The CAP_NET_ADMIN not set!\n");
-	err = -EPERM;
-      }
-      else {
-	/* copy for user space */
-	if(copy_from_user(&nhm_nf_type, user_buffer, sizeof(nhm_nf_type_te))) {
-	  printk(KERN_ALERT "[NHM] The copy from user failed\n");
-	  err = -EIO;
-	}
+      /* copy for user space */
+      if(copy_from_user(&nhm_nf_type, user_buffer, sizeof(nhm_nf_type_te))) {
+	printk(KERN_ALERT "[NHM] The copy from user failed\n");
+	err = -EIO;
       }
       break;
     }
