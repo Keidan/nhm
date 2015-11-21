@@ -23,7 +23,7 @@ LDFLAGS = $(DEBUG_FLAGS) $(INC_FLAGS) $(ERROR_FLAGS) $(GLIB_LDFLAGS) $(PANGO_LDF
 all: $(BINTEST)
 
 
-$(BINTEST): manager.o
+$(BINTEST): manager.o manager_ui.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 %.o:%.c 
