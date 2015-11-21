@@ -1,6 +1,10 @@
+.PHONY : module demo clean all
 
-all:
+all: module demo
+
+module:
 	cd module && $(MAKE) -f Makefile all
+demo:
 	cd demo && $(MAKE) -f Makefile all
 
 clean:
