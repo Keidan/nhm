@@ -42,8 +42,10 @@
 #ifndef _LINUX_MODULE_H
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 #else
 #include <linux/ioctl.h>
+#include <linux/time.h>
 #endif
 
 /****************************************************
@@ -175,7 +177,10 @@ struct nhm_s {
     unsigned short port[2];               /*!< Port value or range. */
     unsigned short eth_proto;             /*!< Ethernet protocol ID */
     unsigned short ip_proto;              /*!< IP protocol ID */
-    unsigned long  applied;               /*!< Simple counter to obtain the number of times the rule is applied.*/
+    struct {
+	unsigned long   counter;          /*!< Simple counter to obtain the number of times the rule is applied.*/
+	struct timespec last;             /*!< Last time where the rule is applied. */
+    }              applied;               /*!< Informations when the rule is applied. */
 };
 
 /****************************************************
