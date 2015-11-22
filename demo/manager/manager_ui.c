@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include "manager_ui.h"
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 
 static char* columns_header[] = {
@@ -356,113 +358,154 @@ void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
  */
 gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
   gboolean res = FALSE;
-  GtkWidget* box;
-  GtkWidget* vBox;
-  GtkWidget* dev;
-  GtkWidget* nfType;
-  GtkWidget* dir;
-  GtkWidget* hw;
-  GtkWidget* ip;
-  GtkWidget* port1;
-  GtkWidget* port2;
-  GtkWidget* ethProto;
-  GtkWidget* ipProto;
-  GtkWidget* table;
-
+  GtkWidget* gw_box;
+  GtkWidget* gw_vBox;
+  GtkWidget* gw_dev;
+  GtkWidget* gw_nfType;
+  GtkWidget* gw_dir;
+  GtkWidget* gw_hw;
+  GtkWidget* gw_ip;
+  GtkWidget* gw_port1;
+  GtkWidget* gw_port2;
+  GtkWidget* gw_ethProto;
+  GtkWidget* gw_ipProto;
+  GtkWidget* gw_table;
+  GtkTreeModel* model = NULL;
+  GtkTreeIter iter;
+  gchar* gc_dev;
+  gchar* gc_nfType;
+  gchar* gc_dir;
+  gchar* gc_hw;
+  gchar* gc_ip;
+  gchar* gc_port1;
+  gchar* gc_port2;
+  gchar* gc_ethProto;
+  gchar* gc_ipProto;
+  struct in_addr in4;
+  struct in6_addr in6;
   
-  box = gtk_dialog_new_with_buttons("Add a new rule",
+  gw_box = gtk_dialog_new_with_buttons("Add a new rule",
 				       GTK_WINDOW(ctx->window),
 				       GTK_DIALOG_MODAL,
 				       GTK_STOCK_OK, "Ok",
 				       GTK_STOCK_CANCEL, "Cancel",
 				       NULL);
-  vBox = gtk_vbox_new(FALSE, 0);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(box)->vbox), vBox, TRUE, TRUE, 0);
+  gw_vBox = gtk_vbox_new(FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(gw_box)->vbox), gw_vBox, TRUE, TRUE, 0);
 
-  dev = gtk_entry_new();
-  hw = gtk_entry_new();
-  ip = gtk_entry_new();
-  port1 = gtk_entry_new();
-  port2 = gtk_entry_new();
-  nfType = gtk_combo_box_new_text();
-  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "ACCEPT");
-  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "DROP");
-  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "QUEUE");
-  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "REPEAT");
-  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "STOLEN");
-  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "STOP");
-  gtk_combo_box_set_active(GTK_COMBO_BOX(nfType), 0);
-  dir = gtk_combo_box_new_text();
-  gtk_combo_box_append_text(GTK_COMBO_BOX(dir), "BOTH");
-  gtk_combo_box_append_text(GTK_COMBO_BOX(dir), "INPUT");
-  gtk_combo_box_append_text(GTK_COMBO_BOX(dir), "OUTPUT");
-  gtk_combo_box_set_active(GTK_COMBO_BOX(dir), 0);
-  ethProto = gtk_entry_new();
-  ipProto = gtk_entry_new();
+  gw_dev = gtk_entry_new();
+  gw_hw = gtk_entry_new();
+  gw_ip = gtk_entry_new();
+  gw_port1 = gtk_entry_new();
+  gw_port2 = gtk_entry_new();
+  gw_nfType = gtk_combo_box_new_text();
+  gtk_combo_box_append_text(GTK_COMBO_BOX(gw_nfType), "ACCEPT");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(gw_nfType), "DROP");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(gw_nfType), "QUEUE");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(gw_nfType), "REPEAT");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(gw_nfType), "STOLEN");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(gw_nfType), "STOP");
+  gtk_combo_box_set_active(GTK_COMBO_BOX(gw_nfType), 0);
+  gw_dir = gtk_combo_box_new_text();
+  gtk_combo_box_append_text(GTK_COMBO_BOX(gw_dir), "BOTH");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(gw_dir), "INPUT");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(gw_dir), "OUTPUT");
+  gtk_combo_box_set_active(GTK_COMBO_BOX(gw_dir), 0);
+  gw_ethProto = gtk_entry_new();
+  gw_ipProto = gtk_entry_new();
 
 
   /* rows x columns */
-  table = gtk_table_new(6, 4, FALSE);
-  gtk_box_pack_start(GTK_BOX(vBox), table, TRUE, TRUE, 0);
+  gw_table = gtk_table_new(6, 4, FALSE);
+  gtk_box_pack_start(GTK_BOX(gw_vBox), gw_table, TRUE, TRUE, 0);
   /* ligne 1 */
-  gtk_table_attach(GTK_TABLE(table), gtk_label_new("Device name: "),
+  gtk_table_attach(GTK_TABLE(gw_table), gtk_label_new("Device name: "),
 		   0, 1, 0, 1, GTK_SHRINK, GTK_SHRINK, 5, 5);
-  gtk_table_attach(GTK_TABLE(table), dev,
+  gtk_table_attach(GTK_TABLE(gw_table), gw_dev,
 		   1, 4, 0, 1, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
   /* ligne 2 */
-  gtk_table_attach(GTK_TABLE(table), gtk_label_new("MAC: "),
+  gtk_table_attach(GTK_TABLE(gw_table), gtk_label_new("MAC: "),
 		   0, 1, 1, 2, GTK_SHRINK, GTK_SHRINK, 5, 5);
-  gtk_table_attach(GTK_TABLE(table), hw,
+  gtk_table_attach(GTK_TABLE(gw_table), gw_hw,
 		   1, 4, 1, 2, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
   /* ligne 3 */
-  gtk_table_attach(GTK_TABLE(table), gtk_label_new("IP: "),
+  gtk_table_attach(GTK_TABLE(gw_table), gtk_label_new("IP: "),
 		   0, 1, 2, 3, GTK_SHRINK, GTK_SHRINK, 5, 0);
-  gtk_table_attach(GTK_TABLE(table), ip,
+  gtk_table_attach(GTK_TABLE(gw_table), gw_ip,
 		   1, 4, 2, 3, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
   /* ligne 4 */
-  gtk_table_attach(GTK_TABLE(table), gtk_label_new("Port start: "),
+  gtk_table_attach(GTK_TABLE(gw_table), gtk_label_new("Port start: "),
 		   0, 1, 3, 4, GTK_SHRINK, GTK_SHRINK, 5, 0);
-  gtk_table_attach(GTK_TABLE(table), port1,
+  gtk_table_attach(GTK_TABLE(gw_table), gw_port1,
 		   1, 2, 3, 4, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
-  gtk_table_attach(GTK_TABLE(table), gtk_label_new("Port end: "),
+  gtk_table_attach(GTK_TABLE(gw_table), gtk_label_new("Port end: "),
 		   2, 3, 3, 4, GTK_SHRINK, GTK_SHRINK, 5, 0);
-  gtk_table_attach(GTK_TABLE(table), port2,
+  gtk_table_attach(GTK_TABLE(gw_table), gw_port2,
 		   3, 4, 3, 4, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
   /* ligne 5 */
-  gtk_table_attach(GTK_TABLE(table), gtk_label_new("Eth proto: "),
+  gtk_table_attach(GTK_TABLE(gw_table), gtk_label_new("Eth proto: "),
 		   0, 1, 4, 5, GTK_SHRINK, GTK_SHRINK, 5, 5);
-  gtk_table_attach(GTK_TABLE(table), ethProto,
+  gtk_table_attach(GTK_TABLE(gw_table), gw_ethProto,
 		   1, 2, 4, 5, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
-  gtk_table_attach(GTK_TABLE(table), gtk_label_new("IP Proto: "),
+  gtk_table_attach(GTK_TABLE(gw_table), gtk_label_new("IP Proto: "),
 		   2, 3, 4, 5, GTK_SHRINK, GTK_SHRINK, 5, 5);
-  gtk_table_attach(GTK_TABLE(table), ipProto,
+  gtk_table_attach(GTK_TABLE(gw_table), gw_ipProto,
 		   3, 4, 4, 5, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
   /* ligne 6 */
-  gtk_table_attach(GTK_TABLE(table), gtk_label_new("Direction: "),
+  gtk_table_attach(GTK_TABLE(gw_table), gtk_label_new("Direction: "),
 		   0, 1, 5, 6, GTK_SHRINK, GTK_SHRINK, 5, 5);
-  gtk_table_attach(GTK_TABLE(table), dir,
+  gtk_table_attach(GTK_TABLE(gw_table), gw_dir,
 		   1, 2, 5, 6, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
-  gtk_table_attach(GTK_TABLE(table), gtk_label_new("NF Type: "),
+  gtk_table_attach(GTK_TABLE(gw_table), gtk_label_new("NF Type: "),
 		   2, 3, 5, 6, GTK_SHRINK, GTK_SHRINK, 5, 5);
-  gtk_table_attach(GTK_TABLE(table), nfType,
+  gtk_table_attach(GTK_TABLE(gw_table), gw_nfType,
 		   3, 4, 5, 6, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
  
   /* Affichage des éléments de la boite de dialogue */
-  gtk_widget_show_all(GTK_DIALOG(box)->vbox);
-  gtk_window_set_resizable(GTK_WINDOW(box), FALSE);
+  gtk_widget_show_all(GTK_DIALOG(gw_box)->vbox);
+  gtk_window_set_resizable(GTK_WINDOW(gw_box), FALSE);
 
-  switch (gtk_dialog_run(GTK_DIALOG(box))) {
+  switch (gtk_dialog_run(GTK_DIALOG(gw_box))) {
     case GTK_RESPONSE_OK:
-
-      /* res = TRUE; */
+      nhm_init_rule(rule);
+      /* convert dev name */
+      gc_dev = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_dev));
+      if(strlen(gc_dev))
+	strncpy(rule->dev, gc_dev, IFNAMSIZ);
+      /* convert ip */
+      gc_ip = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_ip));
+      if(strlen(gc_ip)) {
+	if(inet_pton(AF_INET, gc_ip, &in4) == -1) {
+	  if(inet_pton(AF_INET6, gc_ip, &in6) == -1)
+	    memcpy(rule->ip6, in6.s6_addr, NHM_LEN_IPv6);
+	}
+      }
+      /* convert hw */
+      gc_hw = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_hw));
+      /* convert port1 */
+      gc_port1 = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_port1));
+      /* convert port2 */
+      gc_port2 = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_port2));
+      /* convert eth proto */
+      gc_ethProto = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_ethProto));
+      /* convert ip proto */
+      gc_ipProto = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_ipProto));
+      /* convert dir */
+      //gc_dir = gtk_entry_get_text(GTK_ENTRY(gw_dir));
+      /* convert dir */
+      //gc_nfType = gtk_entry_get_text(GTK_ENTRY(gw_nfType));
+	
+	
+      res = TRUE;
       break;
     case GTK_RESPONSE_CANCEL:
     case GTK_RESPONSE_NONE:
     default:
+      res = FALSE;
       break;
   }
   /* release the box. */
-  gtk_widget_destroy(box);
+  gtk_widget_destroy(gw_box);
   return res;
 }
 
