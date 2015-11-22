@@ -241,6 +241,8 @@ void gtk_global_button_clicked(GtkWidget* button, gpointer p_data) {
     }
     else {
       gtk_widget_set_sensitive(ctx->buttonConnect, FALSE);
+      gtk_widget_set_sensitive(ctx->buttonAdd, FALSE);
+      gtk_widget_set_sensitive(ctx->buttonRemove, FALSE);
       ctx->end = 1;
     }
   } else if(button == ctx->buttonRemove) {
