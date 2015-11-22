@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <string.h>
 #else
 #include <linux/ioctl.h>
 #include <linux/time.h>
