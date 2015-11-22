@@ -43,7 +43,7 @@ static char* columns_header[] = {
  */
 static void gtk_status_icon_popup(GtkStatusIcon *status_icon, guint button, guint32 activate_time, gpointer p_data) {
   struct gtk_ctx_s *ctx = (struct gtk_ctx_s*)p_data;
-  gtk_menu_popup(GTK_MENU(ctx->menu), NULL, NULL, gtk_status_icon_position_menu, status_icon, button, activate_time);
+  gtk_menu_popup(GTK_MENU(ctx->main.menu), NULL, NULL, gtk_status_icon_position_menu, status_icon, button, activate_time);
 }
 
 /**
@@ -56,15 +56,15 @@ static void gtk_status_icon_activate(GtkStatusIcon * status_icon, gpointer p_dat
   struct gtk_ctx_s *ctx = (struct gtk_ctx_s*)p_data;
  
   g_return_if_fail(status_icon != NULL);
-  g_return_if_fail(ctx->window != NULL);
-  g_return_if_fail(GTK_IS_WIDGET (ctx->window));
+  g_return_if_fail(ctx->main.window != NULL);
+  g_return_if_fail(GTK_IS_WIDGET (ctx->main.window));
  
-  if (GTK_WIDGET_VISIBLE (ctx->window)) {
-    gtk_widget_hide(ctx->window);
-    gtk_menu_item_set_label(GTK_MENU_ITEM(ctx->menuItemView), "Show");
+  if (GTK_WIDGET_VISIBLE (ctx->main.window)) {
+    gtk_widget_hide(ctx->main.window);
+    gtk_menu_item_set_label(GTK_MENU_ITEM(ctx->main.menuItemView), "Show");
   } else {
-    gtk_widget_show(ctx->window);
-    gtk_menu_item_set_label(GTK_MENU_ITEM(ctx->menuItemView), "Hide");
+    gtk_widget_show(ctx->main.window);
+    gtk_menu_item_set_label(GTK_MENU_ITEM(ctx->main.menuItemView), "Hide");
   }
 }
 
@@ -82,49 +82,49 @@ void gtk_manager_build_main_ui_and_show(struct gtk_ctx_s *ctx) {
   GtkTreeSelection *selection;
 
   /* Create the main window */
-  ctx->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(ctx->window), "NHM Manager");
-  gtk_window_set_position(GTK_WINDOW(ctx->window), GTK_WIN_POS_CENTER);
-  gtk_window_set_default_size(GTK_WINDOW(ctx->window), 500, 300);
+  ctx->main.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title(GTK_WINDOW(ctx->main.window), "NHM Manager");
+  gtk_window_set_position(GTK_WINDOW(ctx->main.window), GTK_WIN_POS_CENTER);
+  gtk_window_set_default_size(GTK_WINDOW(ctx->main.window), 500, 300);
 
   /* create the main container */
   vBox = gtk_vbox_new(FALSE, 0);
-  gtk_container_add(GTK_CONTAINER(ctx->window), vBox);
+  gtk_container_add(GTK_CONTAINER(ctx->main.window), vBox);
 
   /* Add to the systray */
-  ctx->statusIcon = gtk_status_icon_new_from_stock (GTK_STOCK_NETWORK);
-  gtk_status_icon_set_tooltip (GTK_STATUS_ICON (ctx->statusIcon), "NHM Manager");
+  ctx->main.statusIcon = gtk_status_icon_new_from_stock (GTK_STOCK_NETWORK);
+  gtk_status_icon_set_tooltip (GTK_STATUS_ICON (ctx->main.statusIcon), "NHM Manager");
 
   /* Create the popupmenu used by the systray. */
-  ctx->menu = gtk_menu_new();
-  ctx->menuItemView = gtk_menu_item_new_with_label ("Hide");
-  ctx->menuItemExit = gtk_menu_item_new_with_label ("Exit");
-  ctx->menuItemSeparator = gtk_separator_menu_item_new();
+  ctx->main.menu = gtk_menu_new();
+  ctx->main.menuItemView = gtk_menu_item_new_with_label ("Hide");
+  ctx->main.menuItemExit = gtk_menu_item_new_with_label ("Exit");
+  ctx->main.menuItemSeparator = gtk_separator_menu_item_new();
  
   /* add the submenu to the popupmenu */
-  gtk_menu_shell_append (GTK_MENU_SHELL (ctx->menu), ctx->menuItemView);
-  gtk_menu_shell_append (GTK_MENU_SHELL (ctx->menu), ctx->menuItemSeparator);
-  gtk_menu_shell_append (GTK_MENU_SHELL (ctx->menu), ctx->menuItemExit);
-  gtk_widget_show_all (ctx->menu);
+  gtk_menu_shell_append (GTK_MENU_SHELL (ctx->main.menu), ctx->main.menuItemView);
+  gtk_menu_shell_append (GTK_MENU_SHELL (ctx->main.menu), ctx->main.menuItemSeparator);
+  gtk_menu_shell_append (GTK_MENU_SHELL (ctx->main.menu), ctx->main.menuItemExit);
+  gtk_widget_show_all (ctx->main.menu);
 
   /* Create the buttons */
-  ctx->buttonConnect = gtk_toggle_button_new_with_label("Connect");
-  ctx->buttonAdd = gtk_button_new_with_label("Add");
-  ctx->buttonRemove = gtk_button_new_with_label("Remove");
+  ctx->main.buttonConnect = gtk_toggle_button_new_with_label("Connect");
+  ctx->main.buttonAdd = gtk_button_new_with_label("Add");
+  ctx->main.buttonRemove = gtk_button_new_with_label("Remove");
   bbox = gtk_hbutton_box_new();
   gtk_container_set_border_width (GTK_CONTAINER (bbox), 5);
   gtk_button_box_set_spacing (GTK_BUTTON_BOX (bbox), 5);
   gtk_button_box_set_layout(GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
-  gtk_container_add (GTK_CONTAINER (bbox), ctx->buttonConnect);
-  gtk_container_add (GTK_CONTAINER (bbox), ctx->buttonAdd);
-  gtk_container_add (GTK_CONTAINER (bbox), ctx->buttonRemove);
+  gtk_container_add (GTK_CONTAINER (bbox), ctx->main.buttonConnect);
+  gtk_container_add (GTK_CONTAINER (bbox), ctx->main.buttonAdd);
+  gtk_container_add (GTK_CONTAINER (bbox), ctx->main.buttonRemove);
   gtk_button_box_set_child_size(GTK_BUTTON_BOX(bbox), 100, 20);
   gtk_box_pack_start(GTK_BOX(vBox), bbox, FALSE, FALSE, 0);
 
   /* Create the list model */
-  ctx->listStore = gtk_list_store_new(COLUMNS_HEADER_LENGTH, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_ULONG, G_TYPE_POINTER);
-  ctx->listView = gtk_tree_view_new_with_model(GTK_TREE_MODEL(ctx->listStore));
-  selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(ctx->listView));
+  ctx->main.listStore = gtk_list_store_new(COLUMNS_HEADER_LENGTH, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_ULONG, G_TYPE_POINTER);
+  ctx->main.listView = gtk_tree_view_new_with_model(GTK_TREE_MODEL(ctx->main.listStore));
+  selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(ctx->main.listView));
   gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
   /* create the first column */
   cellRenderer = gtk_cell_renderer_text_new();
@@ -133,7 +133,7 @@ void gtk_manager_build_main_ui_and_show(struct gtk_ctx_s *ctx) {
       column = gtk_tree_view_column_new();
     else
       column = gtk_tree_view_column_new_with_attributes(columns_header[i], cellRenderer, "text", i, NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(ctx->listView), column);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(ctx->main.listView), column);
   }
   /* hide the latest column. */
   gtk_tree_view_column_set_visible(column, FALSE);
@@ -141,27 +141,27 @@ void gtk_manager_build_main_ui_and_show(struct gtk_ctx_s *ctx) {
   scrollbar = gtk_scrolled_window_new(NULL, NULL);
   /* add the list to the scrollbar and the scrollbar to the main container */
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrollbar), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-  gtk_container_add(GTK_CONTAINER(scrollbar),ctx->listView);
+  gtk_container_add(GTK_CONTAINER(scrollbar),ctx->main.listView);
   gtk_box_pack_start(GTK_BOX(vBox), scrollbar, TRUE, TRUE, 0);
 
     
   /* add all the signals */
-  g_signal_connect(G_OBJECT(ctx->window), "delete-event", G_CALLBACK(gtk_main_quit), NULL);
-  g_signal_connect(G_OBJECT(ctx->statusIcon), "activate", G_CALLBACK(gtk_status_icon_activate), ctx);
-  g_signal_connect(GTK_STATUS_ICON(ctx->statusIcon), "popup-menu", GTK_SIGNAL_FUNC(gtk_status_icon_popup), ctx);
-  g_signal_connect(G_OBJECT(ctx->menuItemView), "activate", G_CALLBACK (gtk_status_icon_activate), ctx);
-  g_signal_connect(G_OBJECT(ctx->menuItemExit), "activate", G_CALLBACK (gtk_main_quit), ctx);
-  g_signal_connect(G_OBJECT(ctx->buttonConnect), "clicked", G_CALLBACK(gtk_global_button_clicked), ctx);
-  g_signal_connect(G_OBJECT(ctx->buttonAdd), "clicked", G_CALLBACK(gtk_global_button_clicked), ctx);
-  g_signal_connect(G_OBJECT(ctx->buttonRemove), "clicked", G_CALLBACK(gtk_global_button_clicked), ctx);
+  g_signal_connect(G_OBJECT(ctx->main.window), "delete-event", G_CALLBACK(gtk_main_quit), NULL);
+  g_signal_connect(G_OBJECT(ctx->main.statusIcon), "activate", G_CALLBACK(gtk_status_icon_activate), ctx);
+  g_signal_connect(GTK_STATUS_ICON(ctx->main.statusIcon), "popup-menu", GTK_SIGNAL_FUNC(gtk_status_icon_popup), ctx);
+  g_signal_connect(G_OBJECT(ctx->main.menuItemView), "activate", G_CALLBACK (gtk_status_icon_activate), ctx);
+  g_signal_connect(G_OBJECT(ctx->main.menuItemExit), "activate", G_CALLBACK (gtk_main_quit), ctx);
+  g_signal_connect(G_OBJECT(ctx->main.buttonConnect), "clicked", G_CALLBACK(gtk_global_button_clicked), ctx);
+  g_signal_connect(G_OBJECT(ctx->main.buttonAdd), "clicked", G_CALLBACK(gtk_global_button_clicked), ctx);
+  g_signal_connect(G_OBJECT(ctx->main.buttonRemove), "clicked", G_CALLBACK(gtk_global_button_clicked), ctx);
 
   /* disable components */
-  gtk_widget_set_sensitive(ctx->buttonAdd, FALSE);
-  gtk_widget_set_sensitive(ctx->buttonRemove, FALSE);
-  gtk_widget_set_sensitive(ctx->listView, FALSE);
+  gtk_widget_set_sensitive(ctx->main.buttonAdd, FALSE);
+  gtk_widget_set_sensitive(ctx->main.buttonRemove, FALSE);
+  gtk_widget_set_sensitive(ctx->main.listView, FALSE);
 
   /* show the window */
-  gtk_widget_show_all(ctx->window);
+  gtk_widget_show_all(ctx->main.window);
 }
 
 /**
@@ -251,7 +251,7 @@ static gboolean gtk_foreach_rem(GtkTreeModel *model, GtkTreePath *path, GtkTreeI
 void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(GtkTreeModel *model, GtkTreeIter *iter)) {
   GList *rr_list = NULL;    /* list of GtkTreeRowReferences to remove */
   GList *node;
-  GtkListStore* store = ctx->listStore;
+  GtkListStore* store = ctx->main.listStore;
   gtk_tree_model_foreach(GTK_TREE_MODEL(store), (GtkTreeModelForeachFunc) gtk_foreach_rem, &rr_list);
 
   for(node = rr_list; node != NULL; node = node->next) {
@@ -279,7 +279,7 @@ void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(GtkTr
  */
 void gtk_show_msg(struct gtk_ctx_s *ctx, int type, const char* msg) {
   GtkWidget *b;
-  b = gtk_message_dialog_new (GTK_WINDOW(ctx->window),
+  b = gtk_message_dialog_new (GTK_WINDOW(ctx->main.window),
 			      GTK_DIALOG_MODAL, type, GTK_BUTTONS_OK, "\n%s", msg);
   gtk_dialog_run(GTK_DIALOG(b));
   gtk_widget_destroy(b);
@@ -328,8 +328,8 @@ void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
   g_string_append_printf(str_proto, "%d-%d", rule->eth_proto, rule->ip_proto);
 
 
-  gtk_list_store_append(ctx->listStore, &iter);
-    gtk_list_store_set(ctx->listStore, &iter, 
+  gtk_list_store_append(ctx->main.listStore, &iter);
+    gtk_list_store_set(ctx->main.listStore, &iter, 
 		       0, rule->dev[0] ? "All" : rule->dev, 
 		       1, str_type->str,
 		       2, (rule->dir == NHM_DIR_INPUT ? "input" : (rule->dir == NHM_DIR_OUTPUT ? "output" : "both")), 

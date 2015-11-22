@@ -119,7 +119,7 @@ static gpointer gtk_thread_refresh_ui_cb(gpointer data) {
   struct nhm_s *r;
   GString *str = NULL;
   
-  for(;!ctx->end;) {
+  for(;!ctx->main.end;) {
     gdk_threads_enter();
     gtk_list_view_clear_all(ctx, user_on_remove);
     if(nhm_fd != -1) {
@@ -164,17 +164,17 @@ static gpointer gtk_thread_refresh_ui_cb(gpointer data) {
   }
   /* Rebuild the UI state*/
   gdk_threads_enter();
-  gtk_widget_set_sensitive(ctx->buttonConnect, TRUE);
-  gtk_button_set_label(GTK_BUTTON(ctx->buttonConnect), "Connect");
-  gtk_widget_set_sensitive(ctx->buttonAdd, FALSE);
-  gtk_widget_set_sensitive(ctx->buttonRemove, FALSE);
-  gtk_widget_set_sensitive(ctx->listView, FALSE);
+  gtk_widget_set_sensitive(ctx->main.buttonConnect, TRUE);
+  gtk_button_set_label(GTK_BUTTON(ctx->main.buttonConnect), "Connect");
+  gtk_widget_set_sensitive(ctx->main.buttonAdd, FALSE);
+  gtk_widget_set_sensitive(ctx->main.buttonRemove, FALSE);
+  gtk_widget_set_sensitive(ctx->main.listView, FALSE);
   /* close the device */
   if(nhm_fd != -1) nhm_close(nhm_fd), nhm_fd = -1;
   gtk_list_view_clear_all(ctx, user_on_remove);
   gdk_threads_leave();
 #if GLIB_CHECK_VERSION(2,32,0)
-  g_thread_unref(ctx->thread);
+  g_thread_unref(ctx->main.thread);
 #endif
   return NULL;
 }
@@ -206,9 +206,9 @@ void gtk_global_button_clicked(GtkWidget* button, gpointer p_data) {
   struct gtk_ctx_s *ctx = (struct gtk_ctx_s*)p_data;
   GString* str = NULL;
   GError *error = NULL;
-  if(button == ctx->buttonConnect) {
+  if(button == ctx->main.buttonConnect) {
     if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button))) {
-      ctx->end = 0;
+      ctx->main.end = 0;
       /* open the connection with the module */
       nhm_fd = nhm_open();
       if(nhm_fd == -1) {
@@ -224,30 +224,30 @@ void gtk_global_button_clicked(GtkWidget* button, gpointer p_data) {
       }
       /* Create new thread */
 #if !GLIB_CHECK_VERSION(2,32,0)
-      ctx->thread = g_thread_create(gtk_thread_refresh_ui_cb, (gpointer)ctx, FALSE, &error);
+      ctx->main.thread = g_thread_create(gtk_thread_refresh_ui_cb, (gpointer)ctx, FALSE, &error);
 #else
-      ctx->thread = g_thread_try_new("RefreshUI", gtk_thread_refresh_ui_cb, (gpointer)ctx, &error);
+      ctx->main.thread = g_thread_try_new("RefreshUI", gtk_thread_refresh_ui_cb, (gpointer)ctx, &error);
 #endif
-      if(!ctx->thread) {
+      if(!ctx->main.thread) {
 	g_print( "Error: %s\n", error->message);
 	gtk_show_msg(ctx, GTK_MESSAGE_ERROR, error->message);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), FALSE);
 	return;
       }
       gtk_button_set_label(GTK_BUTTON(button), "Disconnect");
-      gtk_widget_set_sensitive(ctx->buttonAdd, TRUE);
-      gtk_widget_set_sensitive(ctx->buttonRemove, TRUE);
-      gtk_widget_set_sensitive(ctx->listView, TRUE);
+      gtk_widget_set_sensitive(ctx->main.buttonAdd, TRUE);
+      gtk_widget_set_sensitive(ctx->main.buttonRemove, TRUE);
+      gtk_widget_set_sensitive(ctx->main.listView, TRUE);
     }
     else {
-      gtk_widget_set_sensitive(ctx->buttonConnect, FALSE);
-      gtk_widget_set_sensitive(ctx->buttonAdd, FALSE);
-      gtk_widget_set_sensitive(ctx->buttonRemove, FALSE);
-      ctx->end = 1;
+      gtk_widget_set_sensitive(ctx->main.buttonConnect, FALSE);
+      gtk_widget_set_sensitive(ctx->main.buttonAdd, FALSE);
+      gtk_widget_set_sensitive(ctx->main.buttonRemove, FALSE);
+      ctx->main.end = 1;
     }
-  } else if(button == ctx->buttonRemove) {
-    gtk_tree_view_remove_selected_items(GTK_TREE_VIEW(ctx->listView), user_on_remove);
-  } else if(button == ctx->buttonAdd) {
+  } else if(button == ctx->main.buttonRemove) {
+    gtk_tree_view_remove_selected_items(GTK_TREE_VIEW(ctx->main.listView), user_on_remove);
+  } else if(button == ctx->main.buttonAdd) {
 
   }
 }

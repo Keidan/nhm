@@ -29,19 +29,21 @@
 
 
 struct gtk_ctx_s {
-    GtkWidget* window;
-    GtkStatusIcon *statusIcon;
-    GtkWidget* menu;
-    GtkWidget* menuItemView;
-    GtkWidget* menuItemExit;
-    GtkWidget* menuItemSeparator;
-    GtkWidget* buttonAdd;
-    GtkWidget* buttonRemove;
-    GtkWidget* buttonConnect;
-    GtkWidget *listView;
-    GtkListStore *listStore;
-    GThread *thread;
-    char end;
+    struct {
+	GtkWidget* window;
+	GtkStatusIcon *statusIcon;
+	GtkWidget* menu;
+	GtkWidget* menuItemView;
+	GtkWidget* menuItemExit;
+	GtkWidget* menuItemSeparator;
+	GtkWidget* buttonAdd;
+	GtkWidget* buttonRemove;
+	GtkWidget* buttonConnect;
+	GtkWidget *listView;
+	GtkListStore *listStore;
+	GThread *thread;
+	char end;
+    } main;
 };
 
 /**
