@@ -97,14 +97,24 @@ int main(int argc, char** argv){
 
 
 /**
- * @fn static void user_on_remove(GtkTreeModel *model, GtkTreeIter *iter)
+ * @fn static void user_on_remove(struct gtk_ctx_s *ctx, GtkTreeModel *model, GtkTreeIter *iter)
  * @brief This function is called during the deletion of the rows list.
  * @param model The tree model.
  * @param iter The current iter.
  */
-static void user_on_remove(GtkTreeModel *model, GtkTreeIter *iter) {
+static void user_on_remove(struct gtk_ctx_s *ctx, GtkTreeModel *model, GtkTreeIter *iter) {
+  GString* str = NULL;
   struct nhm_s *rule;
+  int ret;
   gtk_tree_model_get (model, iter, gtk_tree_view_get_headers_length() - 1, &rule, -1);
+  ret = nhm_del_rule(nhm_fd, rule);
+  if(ret == -1) {
+    /* Display the error message */
+    str = g_string_new("Unable to remove the rule");
+    g_string_append_printf(str, ": %s", strerror(errno));
+    gtk_show_msg(ctx, GTK_MESSAGE_ERROR, str->str);
+    g_string_free(str, TRUE);
+  }
   free(rule);
 }
 
@@ -206,6 +216,8 @@ void gtk_global_button_clicked(GtkWidget* button, gpointer p_data) {
   struct gtk_ctx_s *ctx = (struct gtk_ctx_s*)p_data;
   GString* str = NULL;
   GError *error = NULL;
+  int ret;
+  struct nhm_s rule;
   if(button == ctx->buttonConnect) {
     if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button))) {
       ctx->end = 0;
@@ -246,9 +258,18 @@ void gtk_global_button_clicked(GtkWidget* button, gpointer p_data) {
       ctx->end = 1;
     }
   } else if(button == ctx->buttonRemove) {
-    gtk_tree_view_remove_selected_items(GTK_TREE_VIEW(ctx->listView), user_on_remove);
+    gtk_tree_view_remove_selected_items(ctx, user_on_remove);
   } else if(button == ctx->buttonAdd) {
-
+    if(gtk_show_add_dialog(ctx, &rule) == TRUE) {
+      ret = nhm_add_rule(nhm_fd, &rule);
+      if(ret == -1) {
+	/* Display the error message */
+	str = g_string_new("Unable to add the rule");
+	g_string_append_printf(str, ": %s", strerror(errno));
+	gtk_show_msg(ctx, GTK_MESSAGE_ERROR, str->str);
+	g_string_free(str, TRUE);
+      }
+    }
   }
 }
 

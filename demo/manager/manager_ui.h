@@ -78,20 +78,19 @@ void gtk_global_button_clicked(GtkWidget *button, gpointer p_data);
 void gtk_show_msg(struct gtk_ctx_s *ctx, int type, const char* msg);
 
 /**
- * @fn void gtk_tree_view_remove_selected_items(GtkTreeView *treeview, void (*user_on_remove)(GtkTreeModel *model, GtkTreeIter *iter))
+ * @fn void gtk_tree_view_remove_selected_items(struct gtk_ctx_s *ctx, void (*user_on_remove)(struct gtk_ctx_s *ctx, GtkTreeModel *model, GtkTreeIter *iter))
  * @brief Remove the selected items from the treeview (I've found this function after a research on google).
- * @param treeview The tree view.
  * @param user_on_remove On remove fuction.
  */
-void gtk_tree_view_remove_selected_items(GtkTreeView *treeview, void (*user_on_remove)(GtkTreeModel *model, GtkTreeIter *iter));
+void gtk_tree_view_remove_selected_items(struct gtk_ctx_s *ctx, void (*user_on_remove)(struct gtk_ctx_s *ctx, GtkTreeModel *model, GtkTreeIter *iter));
 
 /**
- * @fnvoid gtk_list_view_clear_all(struct gtk_ctx_s *ctx)
+ * @fn void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(struct gtk_ctx_s *ctx, GtkTreeModel *model, GtkTreeIter *iter))
  * @brief Remove all elements from the list view.
  * @param ctx The globale CTX.
  * @param user_on_remove User function to release the resource.
  */
-void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(GtkTreeModel *model, GtkTreeIter *iter));
+void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(struct gtk_ctx_s *ctx, GtkTreeModel *model, GtkTreeIter *iter));
 
 /**
  * @fn void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule)
@@ -100,5 +99,14 @@ void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(GtkTr
  * @param rule The rule to add.
  */
 void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule);
+
+/**
+ * @fn gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule)
+ * @brief Show the 'ad' dialog.
+ * @param ctx The globale CTX.
+ * @param rule The rule output.
+ * @return TRUE if the event is consumed.
+ */
+gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule);
 
 #endif /* __MANAGER_UI_H__ */

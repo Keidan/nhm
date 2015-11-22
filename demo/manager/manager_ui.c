@@ -174,12 +174,11 @@ unsigned int gtk_tree_view_get_headers_length(void) {
 }
 
 /**
- * @fn void gtk_tree_view_remove_selected_items(GtkTreeView *treeview, void (*user_on_remove)(GtkTreeModel *model, GtkTreeIter *iter))
+ * @fn void gtk_tree_view_remove_selected_items(struct gtk_ctx_s *ctx, void (*user_on_remove)(struct gtk_ctx_s *ctx, GtkTreeModel *model, GtkTreeIter *iter))
  * @brief Remove the selected items from the treeview (I've found this function after a research on google).
- * @param treeview The tree view.
  * @param user_on_remove On remove fuction.
  */
-void gtk_tree_view_remove_selected_items(GtkTreeView *treeview, void (*user_on_remove)(GtkTreeModel *model, GtkTreeIter *iter)) {
+void gtk_tree_view_remove_selected_items(struct gtk_ctx_s *ctx, void (*user_on_remove)(struct gtk_ctx_s *ctx, GtkTreeModel *model, GtkTreeIter *iter)) {
   GtkTreeSelection *selection;
   GtkListStore *store;
   GtkTreeModel *model;
@@ -188,6 +187,7 @@ void gtk_tree_view_remove_selected_items(GtkTreeView *treeview, void (*user_on_r
   int nRemoved, ipath;
   GString *fixed_path;
   GtkTreePath *path;
+  GtkTreeView *treeview = GTK_TREE_VIEW(ctx->listView);
   
   selection = gtk_tree_view_get_selection (treeview);
   if(gtk_tree_selection_count_selected_rows(selection) == 0)
@@ -208,7 +208,7 @@ void gtk_tree_view_remove_selected_items(GtkTreeView *treeview, void (*user_on_r
       
     if (path) {
       if (gtk_tree_model_get_iter(model, &iter, path)) { /* get iter from specified path */
-	if(user_on_remove) user_on_remove(model, &iter);
+	if(user_on_remove) user_on_remove(ctx, model, &iter);
 	gtk_list_store_remove(store, &iter); /* remove item */
 	nRemoved++;   
       }
@@ -243,12 +243,12 @@ static gboolean gtk_foreach_rem(GtkTreeModel *model, GtkTreePath *path, GtkTreeI
 }
 
 /**
- * @fnvoid gtk_list_view_clear_all(struct gtk_ctx_s *ctx)
+ * @fn void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(struct gtk_ctx_s *ctx, GtkTreeModel *model, GtkTreeIter *iter))
  * @brief Remove all elements from the list view.
  * @param ctx The globale CTX.
  * @param user_on_remove User function to release the resource.
  */
-void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(GtkTreeModel *model, GtkTreeIter *iter)) {
+void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(struct gtk_ctx_s *ctx, GtkTreeModel *model, GtkTreeIter *iter)) {
   GList *rr_list = NULL;    /* list of GtkTreeRowReferences to remove */
   GList *node;
   GtkListStore* store = ctx->listStore;
@@ -260,7 +260,7 @@ void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(GtkTr
     if (path) {
       GtkTreeIter  iter;
       if (gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path)) {
-	if(user_on_remove) user_on_remove(GTK_TREE_MODEL(store), &iter);
+	if(user_on_remove) user_on_remove(ctx, GTK_TREE_MODEL(store), &iter);
 	gtk_list_store_remove(store, &iter);
       }
     }
@@ -329,19 +329,140 @@ void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
 
 
   gtk_list_store_append(ctx->listStore, &iter);
-    gtk_list_store_set(ctx->listStore, &iter, 
-		       0, rule->dev[0] ? "All" : rule->dev, 
-		       1, str_type->str,
-		       2, (rule->dir == NHM_DIR_INPUT ? "input" : (rule->dir == NHM_DIR_OUTPUT ? "output" : "both")), 
-		       3, str_proto->str,  
-		       4, str_hw->str, 
-		       5, str_ip->str, 
-		       6, str_applied,
-		       7, rule,
-		       -1);
-    g_string_free(str_proto, TRUE);
-    g_string_free(str_hw, TRUE);
-    g_string_free(str_ip, TRUE);
-    g_string_free(str_type, TRUE);
+  gtk_list_store_set(ctx->listStore, &iter, 
+		     0, rule->dev[0] ? "All" : rule->dev, 
+		     1, str_type->str,
+		     2, (rule->dir == NHM_DIR_INPUT ? "input" : (rule->dir == NHM_DIR_OUTPUT ? "output" : "both")), 
+		     3, str_proto->str,  
+		     4, str_hw->str, 
+		     5, str_ip->str, 
+		     6, str_applied,
+		     7, rule,
+		     -1);
+  g_string_free(str_proto, TRUE);
+  g_string_free(str_hw, TRUE);
+  g_string_free(str_ip, TRUE);
+  g_string_free(str_type, TRUE);
 
 }
+
+
+/**
+ * @fn gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule)
+ * @brief Show the 'ad' dialog.
+ * @param ctx The globale CTX.
+ * @param rule The rule output.
+ * @return TRUE if the event is consumed.
+ */
+gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
+  gboolean res = FALSE;
+  GtkWidget* box;
+  GtkWidget* vBox;
+  GtkWidget* dev;
+  GtkWidget* nfType;
+  GtkWidget* dir;
+  GtkWidget* hw;
+  GtkWidget* ip;
+  GtkWidget* port1;
+  GtkWidget* port2;
+  GtkWidget* ethProto;
+  GtkWidget* ipProto;
+  GtkWidget* table;
+
+  
+  box = gtk_dialog_new_with_buttons("Add a new rule",
+				       GTK_WINDOW(ctx->window),
+				       GTK_DIALOG_MODAL,
+				       GTK_STOCK_OK, "Ok",
+				       GTK_STOCK_CANCEL, "Cancel",
+				       NULL);
+  vBox = gtk_vbox_new(FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(box)->vbox), vBox, TRUE, TRUE, 0);
+
+  dev = gtk_entry_new();
+  hw = gtk_entry_new();
+  ip = gtk_entry_new();
+  port1 = gtk_entry_new();
+  port2 = gtk_entry_new();
+  nfType = gtk_combo_box_new_text();
+  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "ACCEPT");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "DROP");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "QUEUE");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "REPEAT");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "STOLEN");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(nfType), "STOP");
+  gtk_combo_box_set_active(GTK_COMBO_BOX(nfType), 0);
+  dir = gtk_combo_box_new_text();
+  gtk_combo_box_append_text(GTK_COMBO_BOX(dir), "BOTH");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(dir), "INPUT");
+  gtk_combo_box_append_text(GTK_COMBO_BOX(dir), "OUTPUT");
+  gtk_combo_box_set_active(GTK_COMBO_BOX(dir), 0);
+  ethProto = gtk_entry_new();
+  ipProto = gtk_entry_new();
+
+
+  /* rows x columns */
+  table = gtk_table_new(6, 4, FALSE);
+  gtk_box_pack_start(GTK_BOX(vBox), table, TRUE, TRUE, 0);
+  /* ligne 1 */
+  gtk_table_attach(GTK_TABLE(table), gtk_label_new("Device name: "),
+		   0, 1, 0, 1, GTK_SHRINK, GTK_SHRINK, 5, 5);
+  gtk_table_attach(GTK_TABLE(table), dev,
+		   1, 4, 0, 1, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
+  /* ligne 2 */
+  gtk_table_attach(GTK_TABLE(table), gtk_label_new("MAC: "),
+		   0, 1, 1, 2, GTK_SHRINK, GTK_SHRINK, 5, 5);
+  gtk_table_attach(GTK_TABLE(table), hw,
+		   1, 4, 1, 2, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
+  /* ligne 3 */
+  gtk_table_attach(GTK_TABLE(table), gtk_label_new("IP: "),
+		   0, 1, 2, 3, GTK_SHRINK, GTK_SHRINK, 5, 0);
+  gtk_table_attach(GTK_TABLE(table), ip,
+		   1, 4, 2, 3, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
+  /* ligne 4 */
+  gtk_table_attach(GTK_TABLE(table), gtk_label_new("Port start: "),
+		   0, 1, 3, 4, GTK_SHRINK, GTK_SHRINK, 5, 0);
+  gtk_table_attach(GTK_TABLE(table), port1,
+		   1, 2, 3, 4, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
+  gtk_table_attach(GTK_TABLE(table), gtk_label_new("Port end: "),
+		   2, 3, 3, 4, GTK_SHRINK, GTK_SHRINK, 5, 0);
+  gtk_table_attach(GTK_TABLE(table), port2,
+		   3, 4, 3, 4, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
+  /* ligne 5 */
+  gtk_table_attach(GTK_TABLE(table), gtk_label_new("Eth proto: "),
+		   0, 1, 4, 5, GTK_SHRINK, GTK_SHRINK, 5, 5);
+  gtk_table_attach(GTK_TABLE(table), ethProto,
+		   1, 2, 4, 5, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
+  gtk_table_attach(GTK_TABLE(table), gtk_label_new("IP Proto: "),
+		   2, 3, 4, 5, GTK_SHRINK, GTK_SHRINK, 5, 5);
+  gtk_table_attach(GTK_TABLE(table), ipProto,
+		   3, 4, 4, 5, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
+  /* ligne 6 */
+  gtk_table_attach(GTK_TABLE(table), gtk_label_new("Direction: "),
+		   0, 1, 5, 6, GTK_SHRINK, GTK_SHRINK, 5, 5);
+  gtk_table_attach(GTK_TABLE(table), dir,
+		   1, 2, 5, 6, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
+  gtk_table_attach(GTK_TABLE(table), gtk_label_new("NF Type: "),
+		   2, 3, 5, 6, GTK_SHRINK, GTK_SHRINK, 5, 5);
+  gtk_table_attach(GTK_TABLE(table), nfType,
+		   3, 4, 5, 6, (GtkAttachOptions)(GTK_EXPAND | GTK_FILL), GTK_SHRINK, 5, 5);
+ 
+  /* Affichage des éléments de la boite de dialogue */
+  gtk_widget_show_all(GTK_DIALOG(box)->vbox);
+  gtk_window_set_resizable(GTK_WINDOW(box), FALSE);
+
+  switch (gtk_dialog_run(GTK_DIALOG(box))) {
+    case GTK_RESPONSE_OK:
+
+      /* res = TRUE; */
+      break;
+    case GTK_RESPONSE_CANCEL:
+    case GTK_RESPONSE_NONE:
+    default:
+      break;
+  }
+  /* release the box. */
+  gtk_widget_destroy(box);
+  return res;
+}
+
