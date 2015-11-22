@@ -171,7 +171,7 @@ static gpointer gtk_thread_refresh_ui_cb(gpointer data) {
   gtk_widget_set_sensitive(ctx->listView, FALSE);
   /* close the device */
   if(nhm_fd != -1) nhm_close(nhm_fd), nhm_fd = -1;
-  gtk_list_store_clear(ctx->listStore);
+  gtk_list_view_clear_all(ctx, user_on_remove);
   gdk_threads_leave();
 #if GLIB_CHECK_VERSION(2,32,0)
   g_thread_unref(ctx->thread);
