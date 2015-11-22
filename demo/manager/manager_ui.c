@@ -292,15 +292,19 @@ void gtk_show_msg(struct gtk_ctx_s *ctx, int type, const char* msg) {
  * @param rule The rule to add.
  */
 void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
-  GString *str_proto, *str_hw, *str_ip, *str_type;
+  GString *str_proto, *str_hw, *str_ip, *str_type, *str_applied;
   unsigned char buffer [4];
   GtkTreeIter iter;
+  time_t nowtime;
+  struct tm *nowtm;
+  char tmbuf[64], buf[64];
  
 	
   str_proto = g_string_sized_new(18);
   str_hw = g_string_sized_new(18);
   str_ip = g_string_sized_new(30);
   str_type = g_string_sized_new(30);
+  str_applied = g_string_sized_new(50);
   g_string_append_printf(str_hw, "%02x:%02x:%02x:%02x:%02x:%02x", rule->hw[0], rule->hw[1], rule->hw[2], rule->hw[3], rule->hw[4], rule->hw[5]);
   if(rule->ip4) {
     nhm_from_ipv4(buffer, 0, rule->ip4);
@@ -312,7 +316,15 @@ void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
   }
   if(!str_ip->str[0])
     g_string_append(str_ip, "unknown");
-	
+
+  if(rule->applied.last.tv_sec) {
+    nowtime = rule->applied.last.tv_sec;
+    nowtm = localtime(&nowtime);
+    strftime(tmbuf, sizeof(tmbuf), "%Y-%m-%d %H:%M:%S", nowtm);
+    snprintf(buf, sizeof(buf), "%s.%06ld", tmbuf, (rule->applied.last.tv_nsec / 1000));
+    g_string_append_printf(str_applied, "%ld (%s)", rule->applied.counter, buf);
+  } else
+    g_string_append_printf(str_applied, "%ld (never)", rule->applied.counter);
   g_string_append_printf(str_proto, "%d-%d", rule->eth_proto, rule->ip_proto);
 
 
@@ -324,7 +336,7 @@ void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
 		       3, str_proto->str,  
 		       4, str_hw->str, 
 		       5, str_ip->str, 
-		       6, rule->applied,
+		       6, str_applied,
 		       7, rule,
 		       -1);
     g_string_free(str_proto, TRUE);
