@@ -25,6 +25,7 @@
 #define __MANAGER_UI_H__
 
 #include <gtk/gtk.h>
+#include <nhm.h>
 
 
 struct gtk_ctx_s {
@@ -50,6 +51,13 @@ struct gtk_ctx_s {
  */
 void gtk_manager_build_main_ui_and_show(struct gtk_ctx_s *ctx);
 
+/**
+ * @fn unsigned int gtk_tree_view_get_headers_length(void)
+ * @brief Get the number of the headers.
+ * @return The length.
+ */
+unsigned int gtk_tree_view_get_headers_length(void);
+
 
 /**
  * @fn void gtk_global_button_clicked(GtkWidget *button, gpointer p_data)
@@ -70,10 +78,27 @@ void gtk_global_button_clicked(GtkWidget *button, gpointer p_data);
 void gtk_show_msg(struct gtk_ctx_s *ctx, int type, const char* msg);
 
 /**
- * @fn void gtk_tree_view_remove_selected_items(GtkTreeView *treeview)
+ * @fn void gtk_tree_view_remove_selected_items(GtkTreeView *treeview, void (*user_on_remove)(GtkTreeModel *model, GtkTreeIter *iter))
  * @brief Remove the selected items from the treeview (I've found this function after a research on google).
  * @param treeview The tree view.
+ * @param user_on_remove On remove fuction.
  */
-void gtk_tree_view_remove_selected_items(GtkTreeView *treeview);
+void gtk_tree_view_remove_selected_items(GtkTreeView *treeview, void (*user_on_remove)(GtkTreeModel *model, GtkTreeIter *iter));
+
+/**
+ * @fnvoid gtk_list_view_clear_all(struct gtk_ctx_s *ctx)
+ * @brief Remove all elements from the list view.
+ * @param ctx The globale CTX.
+ * @param user_on_remove User function to release the resource.
+ */
+void gtk_list_view_clear_all(struct gtk_ctx_s *ctx, void (*user_on_remove)(GtkTreeModel *model, GtkTreeIter *iter));
+
+/**
+ * @fn void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule)
+ * @breif Add a new row.
+ * @param ctx The globale CTX.
+ * @param rule The rule to add.
+ */
+void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule);
 
 #endif /* __MANAGER_UI_H__ */

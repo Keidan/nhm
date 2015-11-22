@@ -27,15 +27,14 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-#include <nhm.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <signal.h>
-#include <gtk/gtk.h>
 #include "manager_ui.h"
 
 static int nhm_fd = -1;
+static struct gtk_ctx_s ctx;
 
 #define THREAD_DELAY_SEC 2
 
@@ -67,7 +66,6 @@ static void atexit_function(void);
  
 int main(int argc, char** argv){
   struct sigaction sa;
-  struct gtk_ctx_s ctx;
 
   memset(&ctx, 0, sizeof(struct gtk_ctx_s));
   memset(&sa, 0, sizeof(struct sigaction));
@@ -97,6 +95,19 @@ int main(int argc, char** argv){
   return EXIT_SUCCESS;
 }
 
+
+/**
+ * @fn static void user_on_remove(GtkTreeModel *model, GtkTreeIter *iter)
+ * @brief This function is called during the deletion of the rows list.
+ * @param model The tree model.
+ * @param iter The current iter.
+ */
+static void user_on_remove(GtkTreeModel *model, GtkTreeIter *iter) {
+  struct nhm_s *rule;
+  gtk_tree_model_get (model, iter, gtk_tree_view_get_headers_length() - 1, &rule, -1);
+  free(rule);
+}
+
 /**
  * @fn static gpointer gtk_thread_refresh_ui_cb(gpointer data)
  * @param data Pointer to globale ctx.
@@ -104,78 +115,52 @@ int main(int argc, char** argv){
  */
 static gpointer gtk_thread_refresh_ui_cb(gpointer data) {
   struct gtk_ctx_s *ctx = (struct gtk_ctx_s*)data;
-  GtkTreeIter iter;
   int i, ret, length;
-  unsigned char buffer [4];
-  struct nhm_s rule;
-  GString *str = NULL, *str_proto, *str_hw, *str_ip, *str_type;
+  struct nhm_s *r;
+  GString *str = NULL;
   
   for(;!ctx->end;) {
     gdk_threads_enter();
-    gtk_list_store_clear(ctx->listStore);
+    gtk_list_view_clear_all(ctx, user_on_remove);
     if(nhm_fd != -1) {
       /* number of rules */
       ret = nhm_rules_size(nhm_fd, &length);
       if(ret == -1) {
         /* Display the error message */
-	str = g_string_new("Unable to read the number of rules");
-	g_string_append_printf(str, ": %s", strerror(errno));
-	gtk_show_msg(ctx, GTK_MESSAGE_ERROR, str->str);
-	g_string_free(str, TRUE);
-	gdk_threads_leave();
-	break;
+    	str = g_string_new("Unable to read the number of rules");
+    	g_string_append_printf(str, ": %s", strerror(errno));
+    	gtk_show_msg(ctx, GTK_MESSAGE_ERROR, str->str);
+    	g_string_free(str, TRUE);
+    	gdk_threads_leave();
+    	break;
       }
 
       /* read the rules from the LKM */
       for(i = 0; i < length; i++) {
-	/* Read the response from the LKM */
-	ret = nhm_get_rule(nhm_fd, &rule);
-	if (ret < 0) {
-	  /* Display the error message */
-	  str = g_string_new("Failed to read the message from the module.");
-	  g_string_append_printf(str, ": %s", strerror(errno));
-	  gtk_show_msg(ctx, GTK_MESSAGE_ERROR, str->str);
-	  g_string_free(str, TRUE);
-	  gdk_threads_leave();
-	  break;
-	}
-	str_proto = g_string_sized_new(18);
-	str_hw = g_string_sized_new(18);
-	str_ip = g_string_sized_new(30);
-	str_type = g_string_sized_new(30);
-	g_string_append_printf(str_hw, "%02x:%02x:%02x:%02x:%02x:%02x", rule.hw[0], rule.hw[1], rule.hw[2], rule.hw[3], rule.hw[4], rule.hw[5]);
-	if(rule.ip4) {
-	  nhm_from_ipv4(buffer, 0, rule.ip4);
-	  g_string_append_printf(str_ip, "%d.%d.%d.%d", buffer[0], buffer[1], buffer[2], buffer[3]);
-	  if(!rule.port[1])
-	    g_string_append_printf(str_ip, ":%d", rule.port[0]);
-	  else
-	    g_string_append_printf(str_ip, ":[%d-%d]", rule.port[0], rule.port[1]);
-	}
-	if(!str_ip->str[0])
-	  g_string_append(str_ip, "unknown");
-	
-	g_string_append_printf(str_proto, "%d-%d", rule.eth_proto, rule.ip_proto);
-
-
-	gtk_list_store_append(ctx->listStore, &iter);
-	gtk_list_store_set(ctx->listStore, &iter, 
-			   0, rule.dev[0] ? "All" : rule.dev, 
-			   1, str_type->str,
-			   2, (rule.dir == NHM_DIR_INPUT ? "input" : (rule.dir == NHM_DIR_OUTPUT ? "output" : "both")), 
-			   3, str_proto->str,  
-			   4, str_hw->str, 
-			   5, str_ip->str, 
-			   6, rule.applied, 
-			   -1);
-	g_string_free(str_proto, TRUE);
-	g_string_free(str_hw, TRUE);
-	g_string_free(str_ip, TRUE);
-	g_string_free(str_type, TRUE);
-      } 
-      gdk_threads_leave();
-      sleep(THREAD_DELAY_SEC);
+    	r = malloc(sizeof(struct nhm_s));
+    	if (r == NULL) {
+    	  /* Display the error message */
+    	  gtk_show_msg(ctx, GTK_MESSAGE_ERROR, "Not enough memory to allocate the working buffer.");
+    	  gdk_threads_leave();
+    	  break;
+    	}
+    	/* Read the response from the LKM */
+    	ret = nhm_get_rule(nhm_fd, r);
+    	if (ret < 0) {
+    	  /* Display the error message */
+    	  str = g_string_new("Failed to read the message from the module.");
+    	  g_string_append_printf(str, ": %s", strerror(errno));
+    	  gtk_show_msg(ctx, GTK_MESSAGE_ERROR, str->str);
+    	  g_string_free(str, TRUE);
+	  free(r);
+    	  gdk_threads_leave();
+    	  break;
+    	}
+    	gtk_tree_view_add_row(ctx, r);
+      }
     }
+    gdk_threads_leave();
+    sleep(THREAD_DELAY_SEC);
   }
   /* Rebuild the UI state*/
   gdk_threads_enter();
@@ -259,7 +244,9 @@ void gtk_global_button_clicked(GtkWidget* button, gpointer p_data) {
       ctx->end = 1;
     }
   } else if(button == ctx->buttonRemove) {
-    gtk_tree_view_remove_selected_items(GTK_TREE_VIEW(ctx->listView));
+    gtk_tree_view_remove_selected_items(GTK_TREE_VIEW(ctx->listView), user_on_remove);
+  } else if(button == ctx->buttonAdd) {
+
   }
 }
 
