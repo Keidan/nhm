@@ -22,6 +22,8 @@
 *******************************************************************************
 */
 #include <stdlib.h>
+#include <errno.h>
+#include <ctype.h>
 #include "manager_ui.h"
 
 #include <netinet/in.h>
@@ -348,6 +350,22 @@ void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
 
 }
 
+/**
+ * @fn static int str2int(char* str, int def)
+ * @brief Convert a string to an int valude.
+ * @param str The string to convert.
+ * @param def The default value if fail.
+ * @return The int value.
+ */
+static int str2int(char* str, int def) {
+  int n;
+  if(!str) return def;
+  n = strtol(str, NULL, 10);
+  if((errno == ERANGE) || (errno == EINVAL)) {
+    return def;
+  }
+  return n;
+}
 
 /**
  * @fn gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule)
@@ -357,7 +375,7 @@ void gtk_tree_view_add_row(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
  * @return TRUE if the event is consumed.
  */
 gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
-  gboolean res = FALSE;
+  gboolean res = FALSE, entry = FALSE;
   GtkWidget* gw_box;
   GtkWidget* gw_vBox;
   GtkWidget* gw_dev;
@@ -370,8 +388,6 @@ gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
   GtkWidget* gw_ethProto;
   GtkWidget* gw_ipProto;
   GtkWidget* gw_table;
-  GtkTreeModel* model = NULL;
-  GtkTreeIter iter;
   gchar* gc_dev;
   gchar* gc_nfType;
   gchar* gc_dir;
@@ -383,7 +399,9 @@ gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
   gchar* gc_ipProto;
   struct in_addr in4;
   struct in6_addr in6;
-  
+  unsigned int i, length;
+  unsigned int imac[6];
+
   gw_box = gtk_dialog_new_with_buttons("Add a new rule",
 				       GTK_WINDOW(ctx->window),
 				       GTK_DIALOG_MODAL,
@@ -470,33 +488,97 @@ gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
       nhm_init_rule(rule);
       /* convert dev name */
       gc_dev = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_dev));
-      if(strlen(gc_dev))
+      if(strlen(gc_dev)) {
 	strncpy(rule->dev, gc_dev, IFNAMSIZ);
+	entry = TRUE;
+      }
       /* convert ip */
       gc_ip = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_ip));
       if(strlen(gc_ip)) {
 	if(inet_pton(AF_INET, gc_ip, &in4) == -1) {
-	  if(inet_pton(AF_INET6, gc_ip, &in6) == -1)
+	  if(inet_pton(AF_INET6, gc_ip, &in6) != -1) {
 	    memcpy(rule->ip6, in6.s6_addr, NHM_LEN_IPv6);
-	}
+	    entry = TRUE;
+	  } else
+	    gtk_show_msg(ctx, GTK_MESSAGE_ERROR, "Invalid IP address!");
+	} else
+	  entry = TRUE;
       }
       /* convert hw */
       gc_hw = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_hw));
+      length = strlen(gc_hw);
+      if(length) {
+	if(length != 17) {
+	  gtk_show_msg(ctx, GTK_MESSAGE_ERROR, "Invalid MAC address length!");
+	} else {
+	  for(i = 0; i != length; i++) {
+	    if(!isxdigit(gc_hw[i]) && gc_hw[i] != ':') break;
+	  }
+	  if(i != length) 
+	    gtk_show_msg(ctx, GTK_MESSAGE_ERROR, "Invalid MAC address format!");
+	  else {
+	    sscanf(gc_hw, "%x:%x:%x:%x:%x:%x", &imac[0], &imac[1], &imac[2], &imac[3], &imac[4], &imac[5]);
+	    for(i = 0; i < 6; i++) rule->hw[i] = (unsigned char)imac[i];
+	    entry = TRUE;
+	  }
+	}
+      }
       /* convert port1 */
       gc_port1 = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_port1));
+      if(strlen(gc_port1)) {
+	length = (unsigned int)str2int(gc_port1, 0);
+	if(length < 1 || length > 65535)
+	  gtk_show_msg(ctx, GTK_MESSAGE_ERROR, "Invalid port start value!");
+	else {
+	  rule->port[0] = (unsigned short)length;
+	  entry = TRUE;
+	}
+      }
       /* convert port2 */
       gc_port2 = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_port2));
+      if(strlen(gc_port2)) {
+	length = (unsigned int)str2int(gc_port2, 0);
+	if(length < 1 || length > 65535)
+	  gtk_show_msg(ctx, GTK_MESSAGE_ERROR, "Invalid port end value!");
+	else {
+	  rule->port[1] = (unsigned short)length;
+	  entry = TRUE;
+	}
+      }
       /* convert eth proto */
       gc_ethProto = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_ethProto));
+      if(strlen(gc_ethProto)) {
+	rule->eth_proto = (unsigned short)str2int(gc_ethProto, 0);
+	entry = TRUE;
+      }
       /* convert ip proto */
       gc_ipProto = (gchar*)gtk_entry_get_text(GTK_ENTRY(gw_ipProto));
+      if(strlen(gc_ipProto)) {
+	rule->ip_proto = (unsigned short)str2int(gc_ipProto, 0);
+	entry = TRUE;
+      }
       /* convert dir */
-      //gc_dir = gtk_entry_get_text(GTK_ENTRY(gw_dir));
+      gc_dir = gtk_combo_box_get_active_text(GTK_COMBO_BOX(gw_dir));
+      if(strlen(gc_dir)) {
+	if(strcmp(gc_dir, "INPUT") == 0) rule->dir = NHM_DIR_INPUT;
+	else if(strcmp(gc_dir, "OUTPUT") == 0) rule->dir = NHM_DIR_OUTPUT;
+	else rule->dir = NHM_DIR_BOTH;
+	entry = TRUE;
+      }
+      g_free(gc_dir);
       /* convert dir */
-      //gc_nfType = gtk_entry_get_text(GTK_ENTRY(gw_nfType));
-	
-	
-      res = TRUE;
+      gc_nfType = gtk_combo_box_get_active_text(GTK_COMBO_BOX(gw_nfType));
+      if(strlen(gc_nfType)) {
+	if(strcmp(gc_nfType, "DROP") == 0) rule->nf_type = NHM_NF_TYPE_DROP;
+	else if(strcmp(gc_nfType, "QUEUE") == 0) rule->nf_type = NHM_NF_TYPE_QUEUE;
+	else if(strcmp(gc_nfType, "REPEAT") == 0) rule->nf_type = NHM_NF_TYPE_REPEAT;
+	else if(strcmp(gc_nfType, "STOLEN") == 0) rule->nf_type = NHM_NF_TYPE_STOLEN;
+	else if(strcmp(gc_nfType, "STOP") == 0) rule->nf_type = NHM_NF_TYPE_STOP;
+	else rule->nf_type = NHM_NF_TYPE_ACCEPT;
+	entry = TRUE;
+      }
+      g_free(gc_nfType);
+      res = entry;
       break;
     case GTK_RESPONSE_CANCEL:
     case GTK_RESPONSE_NONE:
