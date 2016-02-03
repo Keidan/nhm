@@ -404,10 +404,11 @@ gboolean gtk_show_add_dialog(struct gtk_ctx_s *ctx, struct nhm_s *rule) {
 
   gw_box = gtk_dialog_new_with_buttons("Add a new rule",
 				       GTK_WINDOW(ctx->window),
-				       GTK_DIALOG_MODAL,
-				       GTK_STOCK_OK, "Ok",
-				       GTK_STOCK_CANCEL, "Cancel",
+				       GTK_DIALOG_MODAL| GTK_DIALOG_DESTROY_WITH_PARENT,
+				       "Ok", GTK_RESPONSE_ACCEPT,
+				       "Cancel", GTK_RESPONSE_REJECT,
 				       NULL);
+				       
   gw_vBox = gtk_vbox_new(FALSE, 0);
   gtk_box_pack_start(GTK_BOX(GTK_DIALOG(gw_box)->vbox), gw_vBox, TRUE, TRUE, 0);
 
