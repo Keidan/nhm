@@ -67,16 +67,18 @@ struct nhm_s* QManagerDialogAddRule::display() {
   }
 
   /* add direction */
-  if(ui->directionCombobox->currentText() == "INPUT") rule->dir = NHM_DIR_INPUT;
-  else if(ui->directionCombobox->currentText() == "OUTPUT") rule->dir = NHM_DIR_OUTPUT;
+  QString text = ui->directionCombobox->currentText();
+  if(text == "INPUT") rule->dir = NHM_DIR_INPUT;
+  else if(text == "OUTPUT") rule->dir = NHM_DIR_OUTPUT;
   else rule->dir = NHM_DIR_BOTH;
 
   /* add nf type */
-  if(ui->nfTypeCombobox->currentText() == "DROP") rule->nf_type = NHM_NF_TYPE_DROP;
-  else if(ui->nfTypeCombobox->currentText() == "QUEUE") rule->nf_type = NHM_NF_TYPE_QUEUE;
-  else if(ui->nfTypeCombobox->currentText() == "REPEAT") rule->nf_type = NHM_NF_TYPE_REPEAT;
-  else if(ui->nfTypeCombobox->currentText() == "STOLEN") rule->nf_type = NHM_NF_TYPE_STOLEN;
-  else if(ui->nfTypeCombobox->currentText() == "STOP") rule->nf_type = NHM_NF_TYPE_STOP;
+  text = ui->nfTypeCombobox->currentText();
+  if(text == "DROP") rule->nf_type = NHM_NF_TYPE_DROP;
+  else if(text == "QUEUE") rule->nf_type = NHM_NF_TYPE_QUEUE;
+  else if(text == "REPEAT") rule->nf_type = NHM_NF_TYPE_REPEAT;
+  else if(text == "STOLEN") rule->nf_type = NHM_NF_TYPE_STOLEN;
+  else if(text == "STOP") rule->nf_type = NHM_NF_TYPE_STOP;
   else rule->nf_type = NHM_NF_TYPE_ACCEPT;
 
   /* convert ip */
