@@ -36,7 +36,7 @@
 *******************************************************************************
 */
 
-#include <linux/version.h>	/* Needed for KERNEL_VERSION + LINUX_VERSION_CODE */
+#include <linux/version.h>	  /* Needed for KERNEL_VERSION + LINUX_VERSION_CODE */
 #include <linux/init.h>           // Macros used to mark up functions e.g. __init __exit
 #include <linux/module.h>         // Core header for loading LKMs into the kernel
 #include <linux/device.h>         // Header to support the kernel Driver Model
@@ -138,7 +138,7 @@ static int     nhm_dev_release(struct inode *inodep, struct file *filep);
  */
 static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
+#if (LINUX_KERNEL_VERSION < KERNEL_VERSION(2,6,35))
 /**
  * @fn static int nhm_dev_ioctl(struct inode *i, struct file *file, unsigned int cmd, unsigned long arg)
  * @brief ioctl function.
@@ -203,7 +203,7 @@ static unsigned char          null_ip6[NHM_LEN_IPv6] = NHM_NULL_IPv6; /*!< Repre
 static struct file_operations fops = {
   .open = nhm_dev_open,
   .read = nhm_dev_read,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
+#if (LINUX_KERNEL_VERSION < KERNEL_VERSION(2,6,35))
   .ioctl = nhm_dev_ioctl,
 #else
   .unlocked_ioctl = nhm_dev_ioctl,
@@ -375,7 +375,7 @@ static ssize_t nhm_dev_read(struct file *filep, char *buffer, size_t len, loff_t
 
 
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
+#if (LINUX_KERNEL_VERSION < KERNEL_VERSION(2,6,35))
 /**
  * @fn static int nhm_dev_ioctl(struct inode *i, struct file *file, unsigned int cmd, unsigned long arg)
  * @brief ioctl function.
@@ -622,16 +622,29 @@ static char nhm_hook_test_rule(const struct net_device *idevice, const struct ne
 }
 
 /* Netfilter hook */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
-static unsigned int nhm_hook_func(const struct nf_hook_ops *ops, struct sk_buff *skb, const struct net_device *in, const struct net_device *out, int (*okfn)(struct sk_buff *)) {
+#if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(4, 4, 0))
+static unsigned int nhm_hook_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
+#elif (LINUX_KERNEL_VERSION >= KERNEL_VERSION(4, 1, 0))
+static unsigned int nhm_hook_func(const struct nf_hook_ops *ops, struct sk_buff *skb, const struct nf_hook_state *state) {
+#elif (LINUX_KERNEL_VERSION >= KERNEL_VERSION(3, 12, 0))
+static unsigned int nhm_hook_func(const struct nf_hook_ops *ops, struct sk_buff *skb, const struct net_device *_in, const struct net_device *_out, int (*okfn)(struct sk_buff *)) {
 #else
-static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, const struct net_device *in, const struct net_device *out, int (*okfn)(struct sk_buff *)) {
+static unsigned int nhm_hook_func(unsigned int hooknum, struct sk_buff *skb, const struct net_device *_in, const struct net_device *_out, int (*okfn)(struct sk_buff *)) {
 #endif
+
   struct list_head *ptr, *next;
   struct nhm_list_s *tmp;
   struct sk_buff *sock_buff;
   struct nhm_s r;
   unsigned int result = nhm_get_type(nhm_nf_type);
+
+#if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(4, 1, 0))
+  const struct net_device *in = state->in;
+  const struct net_device *out = state->out;
+#else
+  const struct net_device *in = _in;
+  const struct net_device *out = _out;
+#endif
 
   sock_buff = skb;
   if (sock_buff) { 
