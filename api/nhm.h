@@ -42,8 +42,8 @@
 extern "C" {
 #endif
 
-#include <linux/ioctl.h>
 #ifndef _LINUX_MODULE_H
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -51,6 +51,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 #else
 #include <linux/ioctl.h>
 #include <linux/time.h>
