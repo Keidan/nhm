@@ -25,6 +25,8 @@
 #include "QManagerWindow.hpp"
 #include "ui_QManagerWindow.h"
 #include <QString>
+#include <QStringList>
+#include <QStandardItemModel>
 #include <QMessageBox>
 #include <errno.h>
 #include <string.h>
@@ -38,6 +40,13 @@ QManagerWindow::QManagerWindow(QWidget *parent) :
   m_addRuleDialog = new QManagerDialogAddRule(this);
   ui->addRulePushButton->setEnabled(false);
   ui->removeRulePushButton->setEnabled(false);
+
+  QStringList headers;
+  headers << "Device" << "Type" << "Dir" << "Proto" << "HW" << "IP" << "Applied" << "Hide";
+  QStandardItemModel *model = new QStandardItemModel;
+  model->setHorizontalHeaderLabels(headers); 
+  ui->rulesTableView->setModel(model);
+  ui->rulesTableView->setColumnHidden(7, true);
 }
 
 QManagerWindow::~QManagerWindow() {
