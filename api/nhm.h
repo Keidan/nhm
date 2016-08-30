@@ -8,35 +8,39 @@
 * This software is distributed in the hope that it will be useful, but WITHOUT
 * ANY WARRANTY.
 *
-* Licence summary : 
+* Licence summary :
 *    You can modify and redistribute the sources code and binaries.
 *    You can send me the bug-fix
 *
 * Term of the licence in in the file licence.txt.
 *
-*  _______          __                       __    
+*  _______          __                       __
 *  \      \   _____/  |___  _  _____________|  | __
 *  /   |   \_/ __ \   __\ \/ \/ /  _ \_  __ \  |/ /
-* /    |    \  ___/|  |  \     (  <_> )  | \/    < 
+* /    |    \  ___/|  |  \     (  <_> )  | \/    <
 * \____|__  /\___  >__|   \/\_/ \____/|__|  |__|_ \
 *         \/     \/                              \/
-*   ___ ___                __                      
-*  /   |   \  ____   ____ |  | __                  
-* /    ~    \/  _ \ /  _ \|  |/ /                  
-* \    Y    (  <_> |  <_> )    <                   
-*  \___|_  / \____/ \____/|__|_ \                  
-*        \/                    \/                  
-*    _____             .___    .__                 
-*   /     \   ____   __| _/_ __|  |   ____         
-*  /  \ /  \ /  _ \ / __ |  |  \  | _/ __ \        
-* /    Y    (  <_> ) /_/ |  |  /  |_\  ___/        
-* \____|__  /\____/\____ |____/|____/\___  >       
-*         \/            \/               \/   
+*   ___ ___                __
+*  /   |   \  ____   ____ |  | __
+* /    ~    \/  _ \ /  _ \|  |/ /
+* \    Y    (  <_> |  <_> )    <
+*  \___|_  / \____/ \____/|__|_ \
+*        \/                    \/
+*    _____             .___    .__
+*   /     \   ____   __| _/_ __|  |   ____
+*  /  \ /  \ /  _ \ / __ |  |  \  | _/ __ \
+* /    Y    (  <_> ) /_/ |  |  /  |_\  ___/
+* \____|__  /\____/\____ |____/|____/\___  >
+*         \/            \/               \/
 *
 *******************************************************************************
 */
 #ifndef __NHM_H__
 #define __NHM_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <linux/ioctl.h>
 #ifndef _LINUX_MODULE_H
@@ -44,15 +48,18 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #else
 #include <linux/ioctl.h>
 #include <linux/time.h>
 #endif
 
 /****************************************************
- * _________ ________    _______ ___________.___  ________ 
- * \_   ___ \\_____  \   \      \\_   _____/|   |/  _____/ 
- * /    \  \/ /   |   \  /   |   \|    __)  |   /   \  ___ 
+ * _________ ________    _______ ___________.___  ________
+ * \_   ___ \\_____  \   \      \\_   _____/|   |/  _____/
+ * /    \  \/ /   |   \  /   |   \|    __)  |   /   \  ___
  * \     \___/    |    \/    |    \     \   |   \    \_\  \
  *  \______  |_______  /\____|__  |___  /   |___|\______  /
  *         \/        \/         \/    \/                \/
@@ -132,7 +139,7 @@
 /****************************************************
  * ________      _____________________    _________
  * \______ \    /  _  \__    ___/  _  \  /   _____/
- *  |    |  \  /  /_\  \|    | /  /_\  \ \_____  \ 
+ *  |    |  \  /  /_\  \|    | /  /_\  \ \_____  \
  *  |    `   \/    |    \    |/    |    \/	  \
  * /_______  /\____|__  /____|\____|__  /_______  /
  *         \/         \/              \/        \/
@@ -179,18 +186,18 @@ struct nhm_s {
     unsigned short eth_proto;             /*!< Ethernet protocol ID */
     unsigned short ip_proto;              /*!< IP protocol ID */
     struct {
-	unsigned long   counter;          /*!< Simple counter to obtain the number of times the rule is applied.*/
-	struct timespec last;             /*!< Last time where the rule is applied. */
+        unsigned long   counter;          /*!< Simple counter to obtain the number of times the rule is applied.*/
+        struct timespec last;             /*!< Last time where the rule is applied. */
     }              applied;               /*!< Informations when the rule is applied. */
 };
 
 /****************************************************
  *  ____ ______________.___.____       _________
  * |    |   \__    ___/|   |    |     /   _____/
- * |    |   / |    |   |   |    |     \_____  \ 
+ * |    |   / |    |   |   |    |     \_____  \
  * |    |  /  |    |   |   |    |___  /	       \
  * |______/   |____|   |___|_______ \/_______  /
- *                                 \/        \/ 
+ *                                 \/        \/
  *****************************************************/
 /**
  * @def nhm_to_ipv4(n0, n1, n2, n3)
@@ -225,20 +232,20 @@ struct nhm_s {
  * @return 1 if the rules are equals, 0 else.
  */
 #define nhm_is_same(n1, n2) (memcmp((n1)->dev, (n2)->dev, IFNAMSIZ) == 0 \
-			     && memcmp((n1)->hw, (n2)->hw, NHM_LENGTH) == 0 \
-			     && memcmp((n1)->ip6, (n2)->ip6, NHM_LEN_IPv6) == 0 \
-			     && (n1)->ip4 == (n2)->ip4			\
-			     && memcmp((n1)->port, (n2)->port,		\
-				       2*sizeof(unsigned short)) == 0	\
-			     && (n1)->eth_proto == (n2)->eth_proto	\
-			     && (n1)->ip_proto == (n2)->ip_proto)
+                 && memcmp((n1)->hw, (n2)->hw, NHM_LENGTH) == 0 \
+                 && memcmp((n1)->ip6, (n2)->ip6, NHM_LEN_IPv6) == 0 \
+                 && (n1)->ip4 == (n2)->ip4			\
+                 && memcmp((n1)->port, (n2)->port,		\
+                       2*sizeof(unsigned short)) == 0	\
+                 && (n1)->eth_proto == (n2)->eth_proto	\
+                 && (n1)->ip_proto == (n2)->ip_proto)
 
 
 /****************************************************
- * .___________  ____________________.____     
- * |   \_____  \ \_   ___ \__    ___/|    |    
- * |   |/   |   \/    \  \/ |    |   |    |    
- * |   /    |    \     \____|    |   |    |___ 
+ * .___________  ____________________.____
+ * |   \_____  \ \_   ___ \__    ___/|    |
+ * |   |/   |   \/    \  \/ |    |   |    |
+ * |   /    |    \     \____|    |   |    |___
  * |___\_______  /\______  /|____|   |_______	\
  *             \/        \/                  \/
  *****************************************************/
@@ -285,12 +292,12 @@ struct nhm_s {
 
 
 /*****************************************************
- *   ___ ___        .__                              
+ *   ___ ___        .__
  *  /   |   \  ____ |  | ______   ___________  ______
  * /    ~    \/ __ \|  | \____ \_/ __ \_  __ \/  ___/
- * \    Y    |  ___/|  |_|  |_> >  ___/|  | \/\___ \ 
+ * \    Y    |  ___/|  |_|  |_> >  ___/|  | \/\___ \
  *  \___|_  / \___  >____/   __/ \___  >__|  /____  >
- *        \/      \/     |__|        \/           \/ 
+ *        \/      \/     |__|        \/           \/
  *****************************************************/
 
 /**
@@ -323,7 +330,7 @@ struct nhm_s {
 /**
  * @def nhm_get_rule(fd, r)
  * @brief Read a rule from the module
- * @code 
+ * @code
  * struct nhm_s r;
  * int fd, length, ret, i;
  * ...
@@ -357,7 +364,7 @@ struct nhm_s {
 #define nhm_init_rule(r)           memset(r, 0, NHM_LENGTH)
 
 /**
- * @def nhm_add_rule(fd, r) 
+ * @def nhm_add_rule(fd, r)
  * @brief After this call all packets which would correspond to the rule configuration will be treated.
  * @code
  * struct nhm_s r;
@@ -451,5 +458,9 @@ struct nhm_s {
  * @return The return code of the ioctl function (man ioctl).
  */
 #define nhm_set_netfilter_type(fd, type) ioctl(fd, NHM_IOCTL_NF_TYPE, type)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __NHM_H__ */
