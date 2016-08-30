@@ -16,7 +16,7 @@ Instructions
 Make targets:
 
      module: To execute this target correctly, you should have the kernel source headers.
-     demo: To execute this target correctly, you should have the GTK2 devel package.
+     demo: To execute this target correctly, you should have the Qt devel package.
      all: Build the module and the demo targets.
      clean: Clean the generated files.
 

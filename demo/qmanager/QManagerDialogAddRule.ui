@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>QManagerDialogAddRule</class>
+ <widget class="QDialog" name="QManagerDialogAddRule">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>307</width>
+    <height>229</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Add rule</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0" colspan="2">
+    <layout class="QHBoxLayout" name="hlayout_1">
+     <item>
+      <widget class="QLabel" name="devnameLabel">
+       <property name="text">
+        <string>Device name:</string>
+       </property>
+       <property name="buddy">
+        <cstring>macLineEdit</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="devnameLineEdit"/>
+     </item>
+    </layout>
+   </item>
+   <item row="1" column="0" colspan="2">
+    <layout class="QHBoxLayout" name="hlayout_2">
+     <item>
+      <widget class="QLabel" name="macLabel">
+       <property name="text">
+        <string>MAC:</string>
+       </property>
+       <property name="buddy">
+        <cstring>macLineEdit</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="macLineEdit"/>
+     </item>
+    </layout>
+   </item>
+   <item row="2" column="0" colspan="2">
+    <layout class="QHBoxLayout" name="hlayout_3">
+     <item>
+      <widget class="QLabel" name="ipLabel">
+       <property name="text">
+        <string>IP:</string>
+       </property>
+       <property name="buddy">
+        <cstring>macLineEdit</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="ipLineEdit"/>
+     </item>
+    </layout>
+   </item>
+   <item row="3" column="0" colspan="2">
+    <layout class="QHBoxLayout" name="hlayout_4">
+     <item>
+      <widget class="QLabel" name="portStartLabel">
+       <property name="text">
+        <string>Port start:</string>
+       </property>
+       <property name="buddy">
+        <cstring>macLineEdit</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="portStartLineEdit"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="portEndLabel">
+       <property name="text">
+        <string>Port end:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="portEndLineEdit"/>
+     </item>
+    </layout>
+   </item>
+   <item row="4" column="0" colspan="2">
+    <layout class="QHBoxLayout" name="hlayout_5">
+     <item>
+      <widget class="QLabel" name="ethProtoLabel">
+       <property name="text">
+        <string>Eth proto:</string>
+       </property>
+       <property name="buddy">
+        <cstring>macLineEdit</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="ethProtoLineEdit"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="ipProtoLabel">
+       <property name="text">
+        <string>IP proto:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="ipProtoLineEdit"/>
+     </item>
+    </layout>
+   </item>
+   <item row="5" column="0" colspan="2">
+    <layout class="QHBoxLayout" name="hlayout_6">
+     <item>
+      <widget class="QLabel" name="directionLabel">
+       <property name="text">
+        <string>Direction:</string>
+       </property>
+       <property name="buddy">
+        <cstring>macLineEdit</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="directionCombobox">
+       <item>
+        <property name="text">
+         <string>BOTH</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>INPUT</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>OUTPUT</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="nfTypeLabel">
+       <property name="text">
+        <string>NF Type:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="nfTypeCombobox">
+       <item>
+        <property name="text">
+         <string>ACCEPT</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>DROP</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>QUEUE</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>REPEAT</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>STOLEN</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>STOP</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="6" column="1">
+    <layout class="QHBoxLayout" name="hlayout_buttons">
+     <item>
+      <widget class="QPushButton" name="okPushButton">
+       <property name="text">
+        <string>Ok</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="closePushButton">
+       <property name="text">
+        <string>Close</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="6" column="0">
+    <spacer name="buttons_spacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>300</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>closePushButton</sender>
+   <signal>clicked()</signal>
+   <receiver>QManagerDialogAddRule</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>256</x>
+     <y>207</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>153</x>
+     <y>114</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

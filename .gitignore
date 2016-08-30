@@ -12,3 +12,5 @@ module/certs/signing_key.priv
 module/certs/signing_key.x509       
 *.unsigned
 *.elf
+moc_*
+ui_*
