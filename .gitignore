@@ -14,3 +14,4 @@ module/certs/signing_key.x509
 *.elf
 moc_*
 ui_*
+demo/qmanager/Makefile
