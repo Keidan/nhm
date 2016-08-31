@@ -59,7 +59,7 @@
     private:
       Ui::QManagerWindow *ui;
       QManagerDialogAddRule *m_addRuleDialog;
-      int m_nhmFD;
+      QNHM *m_nhm;
   };
 
 #endif // QMANAGERWINDOW_HPP

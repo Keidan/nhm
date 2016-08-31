@@ -59,7 +59,7 @@ struct nhm_s* QManagerDialogAddRule::display() {
   bool entry = false;
   struct nhm_s* rule = new struct nhm_s;
 
-  nhm_init_rule(rule);
+  QNHM::resetRule(rule);
   /* add name */
   if(!ui->devnameLineEdit->text().isEmpty()) {
     strncpy(rule->dev, TO_CSTR(ui->devnameLineEdit->text()), IFNAMSIZ);

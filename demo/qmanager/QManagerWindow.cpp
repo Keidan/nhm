@@ -35,7 +35,7 @@
 #define DISCONNECT_BUTTON_TEXT "Disconnect"
 
 QManagerWindow::QManagerWindow(QWidget *parent) :
-    QDialog(parent), ui(new Ui::QManagerWindow), m_nhmFD(-1) {
+    QDialog(parent), ui(new Ui::QManagerWindow), m_nhm(new QNHM) {
   ui->setupUi(this);
   m_addRuleDialog = new QManagerDialogAddRule(this);
   ui->addRulePushButton->setEnabled(false);
@@ -50,7 +50,7 @@ QManagerWindow::QManagerWindow(QWidget *parent) :
 }
 
 QManagerWindow::~QManagerWindow() {
-  if(m_nhmFD != -1) ::nhm_close(m_nhmFD), m_nhmFD = -1;
+  delete m_nhm;
   delete ui;
 }
 
@@ -60,7 +60,7 @@ QManagerWindow::~QManagerWindow() {
 void QManagerWindow::on_addRulePushButton_clicked() {
   struct nhm_s* rule = m_addRuleDialog->display();
   if(rule) {
-    if(nhm_add_rule(m_nhmFD, rule)) {
+    if(m_nhm->add(rule)) {
       QString err = "Unable to add the rule: ";
       err.append(strerror(errno));
       QMessageBox::critical(this, "NHM", err);
@@ -81,14 +81,13 @@ void QManagerWindow::on_removeRulePushButton_clicked() {
  */
 void QManagerWindow::on_connectPushButton_clicked() {
   if(ui->connectPushButton->text() == DISCONNECT_BUTTON_TEXT) {
-    ::nhm_close(m_nhmFD), m_nhmFD = -1;
+    m_nhm->close();
     ui->addRulePushButton->setEnabled(false);
     ui->removeRulePushButton->setEnabled(false);
     ui->connectPushButton->setText(CONNECT_BUTTON_TEXT);
   } else {
     /* open the connection with the module */
-    m_nhmFD = ::nhm_open();
-    if(m_nhmFD == -1) {
+    if(m_nhm->open() == -1) {
       /* Display the error message */
       QString err = NHM_DEVICE_PATH;
       err.append(": ").append(strerror(errno));
