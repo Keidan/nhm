@@ -16,8 +16,12 @@ INCLUDEPATH += $$PWD/../../api
 SOURCES += main.cpp \
         QManagerWindow.cpp \
         QManagerDialogAddRule.cpp \
-        QNHM.cpp
+        QNHM.cpp \
+        QThreadTableView.cpp
 
-HEADERS  += QManagerWindow.hpp QManagerDialogAddRule.hpp QNHM.hpp 
+HEADERS  += QManagerWindow.hpp \
+        QManagerDialogAddRule.hpp \
+        QNHM.hpp \
+        QThreadTableView.hpp
 
 FORMS    += QManagerWindow.ui QManagerDialogAddRule.ui

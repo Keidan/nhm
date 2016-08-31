@@ -28,6 +28,7 @@
 #include <QStringList>
 #include <QStandardItemModel>
 #include <QMessageBox>
+#include <QDebug>
 #include <errno.h>
 #include <string.h>
 
@@ -35,7 +36,7 @@
 #define DISCONNECT_BUTTON_TEXT "Disconnect"
 
 QManagerWindow::QManagerWindow(QWidget *parent) :
-    QDialog(parent), ui(new Ui::QManagerWindow), m_nhm(new QNHM) {
+  QDialog(parent), ui(new Ui::QManagerWindow), m_nhm(new QNHM), m_thread(new QThreadTableView) {
   ui->setupUi(this);
   m_addRuleDialog = new QManagerDialogAddRule(this);
   ui->addRulePushButton->setEnabled(false);
@@ -47,10 +48,13 @@ QManagerWindow::QManagerWindow(QWidget *parent) :
   model->setHorizontalHeaderLabels(headers); 
   ui->rulesTableView->setModel(model);
   ui->rulesTableView->setColumnHidden(7, true);
+
+  connect(m_thread, SIGNAL(newRule(struct nhm_s)), this, SLOT(showNewRules(struct nhm_s)));
 }
 
 QManagerWindow::~QManagerWindow() {
   delete m_nhm;
+  delete m_thread;
   delete ui;
 }
 
@@ -81,6 +85,7 @@ void QManagerWindow::on_removeRulePushButton_clicked() {
  */
 void QManagerWindow::on_connectPushButton_clicked() {
   if(ui->connectPushButton->text() == DISCONNECT_BUTTON_TEXT) {
+    m_thread->stop();
     m_nhm->close();
     ui->addRulePushButton->setEnabled(false);
     ui->removeRulePushButton->setEnabled(false);
@@ -97,6 +102,11 @@ void QManagerWindow::on_connectPushButton_clicked() {
       ui->addRulePushButton->setEnabled(true);
       ui->removeRulePushButton->setEnabled(true);
       ui->connectPushButton->setText(DISCONNECT_BUTTON_TEXT);
+      m_thread->start();
     }
   }
+}
+
+void QManagerWindow::showNewRules(const struct nhm_s &data) {
+  qDebug() << "showNewRules";
 }

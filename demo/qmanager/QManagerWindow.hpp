@@ -27,6 +27,7 @@
 
   #include <QDialog>
   #include "QManagerDialogAddRule.hpp"
+  #include "QThreadTableView.hpp"
 
   namespace Ui {
     class QManagerWindow;
@@ -56,10 +57,13 @@
        */
       void on_connectPushButton_clicked();
 
+      void showNewRules(const struct nhm_s &data);
+
     private:
       Ui::QManagerWindow *ui;
       QManagerDialogAddRule *m_addRuleDialog;
       QNHM *m_nhm;
+      QThreadTableView *m_thread;
   };
 
 #endif // QMANAGERWINDOW_HPP
