@@ -36,6 +36,8 @@
       explicit QThreadTableView(QObject *parent = 0);
       ~QThreadTableView();
 
+      void stop();
+
     signals:
       void newRule(const struct nhm_s &data);
 

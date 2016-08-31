@@ -200,6 +200,7 @@ struct nhm_s {
  * |______/   |____|   |___|_______ \/_______  /
  *                                 \/        \/
  *****************************************************/
+
 /**
  * @def nhm_to_ipv4(n0, n1, n2, n3)
  * @brief Transform 4 unsigned chars to an unsigned int.

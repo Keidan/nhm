@@ -16,5 +16,5 @@ leave() {
 echo "Insert module ./module/nhm.ko"
 insmod ./module/nhm.ko
 echo "Excecute manager app"
-./demo/manager/manager.elf
+./demo/qmanager/qmanager.elf
 leave

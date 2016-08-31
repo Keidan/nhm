@@ -30,7 +30,7 @@ QThreadTableView::QThreadTableView(QObject *parent) : QThread(parent) {
 }
 
 QThreadTableView::~QThreadTableView() {
-
+  exit();
 }
 
 void QThreadTableView::run() {
@@ -39,4 +39,10 @@ void QThreadTableView::run() {
   emit newRule(rule);
   // On lance la boucle d'événements (nécessaire pour gérer les signaux). 
   exec();
+}
+
+
+void QThreadTableView::stop() {
+  quit();
+  exit();
 }
