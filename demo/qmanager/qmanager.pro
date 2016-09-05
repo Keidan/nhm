@@ -17,11 +17,11 @@ SOURCES += main.cpp \
         QManagerWindow.cpp \
         QManagerDialogAddRule.cpp \
         QNHM.cpp \
-        QThreadTableView.cpp
+        QTableViewWorker.cpp
 
 HEADERS  += QManagerWindow.hpp \
         QManagerDialogAddRule.hpp \
         QNHM.hpp \
-        QThreadTableView.hpp
+        QTableViewWorker.hpp
 
 FORMS    += QManagerWindow.ui QManagerDialogAddRule.ui

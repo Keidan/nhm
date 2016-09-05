@@ -28,6 +28,29 @@
   #include <QObject>
   #include <nhm.h>
 
+  class QNHMRule : public QObject {
+    Q_OBJECT
+
+    public:
+      explicit QNHMRule(QObject *parent = 0);
+      ~QNHMRule();
+
+      char            dev[IFNAMSIZ];      /*!< Network device name */
+      nhm_nf_type_te  nf_type;            /*!< Netfilter policy. */
+      nhm_dir_te      dir;                /*!< Packet direction */
+      unsigned char   hw[NHM_LEN_HW];     /*!< Hardware MAC address. */
+      unsigned int    ip4;                /*!< IPv4 address. */
+      unsigned char   ip6[NHM_LEN_IPv6];  /*!< IPv address. */
+      unsigned short  port[2];            /*!< Port value or range. */
+      unsigned short  eth_proto;          /*!< Ethernet protocol ID */
+      unsigned short  ip_proto;           /*!< IP protocol ID */
+      unsigned long   counter;            /*!< Simple counter to obtain the number of times the rule is applied.*/
+      struct timespec last;               /*!< Last time where the rule is applied. */
+
+     void copy(void* api_rule);
+  };
+  Q_DECLARE_METATYPE(QNHMRule*)
+
 
   class QNHM : public QObject {
     Q_OBJECT
@@ -53,20 +76,14 @@
        * @param rule The rule to add.
        * @return The return code of the nhm_add_rule function.
        */
-      int add(struct nhm_s* rule);
+      int add(QNHMRule* rule);
 
       /**
        * @brief Remove a rule from the NHM module.
        * @param rule The rule to remove.
        * @return The return code of the nhm_del_rule function.
        */
-      int remove(struct nhm_s* rule);
-
-      /**
-       * @brief Set all fields to 0.
-       * @param rule The rule to reset.
-       */
-      static void resetRule(struct nhm_s* rule);
+      int remove(QNHMRule* rule);
 
     private:
       int m_fd;

@@ -40,7 +40,7 @@
       explicit QManagerDialogAddRule(QWidget *parent = 0);
       ~QManagerDialogAddRule();
 
-      struct nhm_s* display();
+      QNHMRule* display();
 
     private:
       Ui::QManagerDialogAddRule *ui;

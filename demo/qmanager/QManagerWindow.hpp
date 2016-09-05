@@ -27,7 +27,8 @@
 
   #include <QDialog>
   #include "QManagerDialogAddRule.hpp"
-  #include "QThreadTableView.hpp"
+  #include "QTableViewWorker.hpp"
+  #include <QThread>
 
   namespace Ui {
     class QManagerWindow;
@@ -57,13 +58,29 @@
        */
       void on_connectPushButton_clicked();
 
-      void showNewRules(const struct nhm_s &data);
+      /**
+       * @brief Called when the thread has new data to display.
+       * @param rule The rule to display.
+       */
+      void workerUpdate(const QNHMRule &rule);
+
+      /**
+       * @brief Called when the thread is finished.
+       */
+      void workerFinished();
+
+      /**
+       * @brief Called when the thread is started.
+       */
+      void workerStarted();
 
     private:
       Ui::QManagerWindow *ui;
       QManagerDialogAddRule *m_addRuleDialog;
       QNHM *m_nhm;
-      QThreadTableView *m_thread;
+      QThread *m_workerThread;
+      QTableViewWorker *m_worker;
+
   };
 
 #endif // QMANAGERWINDOW_HPP

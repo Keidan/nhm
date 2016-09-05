@@ -50,16 +50,15 @@ QManagerDialogAddRule::~QManagerDialogAddRule() {
 }
 
 
-struct nhm_s* QManagerDialogAddRule::display() {
+QNHMRule* QManagerDialogAddRule::display() {
   exec();
   struct in_addr in4;
   struct in6_addr in6;
   int i;
   unsigned int imac[6];
   bool entry = false;
-  struct nhm_s* rule = new struct nhm_s;
+  QNHMRule* rule = new QNHMRule;
 
-  QNHM::resetRule(rule);
   /* add name */
   if(!ui->devnameLineEdit->text().isEmpty()) {
     strncpy(rule->dev, TO_CSTR(ui->devnameLineEdit->text()), IFNAMSIZ);

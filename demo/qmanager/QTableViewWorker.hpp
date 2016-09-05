@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * @file QThreadTableView.hpp
+ * @file QTableViewWorker.hpp
  * @author Keidan
  * @date 31/08/2016
  * @par Project nhm->qmanager
@@ -22,28 +22,35 @@
  *         \/     \/     \/     \//_____/      \/
  *******************************************************************************
  */
-#ifndef QTHREADTABLEVIEW_HPP
-  #define QTHREADTABLEVIEW_HPP
+#ifndef QTABLEVIEWWORKER_HPP
+  #define QTABLEVIEWWORKER_HPP
 
-  #include <QThread>
+  #include <QObject>
   #include "QNHM.hpp"
 
 
-  class QThreadTableView : public QThread {
+  class QTableViewWorker : public QObject {
     Q_OBJECT
 
     public:
-      explicit QThreadTableView(QObject *parent = 0);
-      ~QThreadTableView();
+      explicit QTableViewWorker(QObject *parent = 0);
+      ~QTableViewWorker();
 
-      void stop();
+      void stop(QThread *owner);
+      void start(QThread *owner);
 
     signals:
-      void newRule(const struct nhm_s &data);
+      void updateRule(const QNHMRule &data);
+      void stopped();
+      void running();
 
-    protected:
-      void run();
+    private slots:
+      void doWork();
 
+    private:
+      volatile bool m_running;
+      volatile bool m_stopped;
+      bool m_stopped_emit;
   };
 
-#endif // QTHREADTABLEVIEW_HPP
+#endif // QTABLEVIEWWORKER_HPP
