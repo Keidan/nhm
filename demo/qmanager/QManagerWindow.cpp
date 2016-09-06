@@ -62,6 +62,11 @@ QManagerWindow::QManagerWindow(QWidget *parent) :
 }
 
 QManagerWindow::~QManagerWindow() {
+  if(m_worker) {
+    m_worker->stop(m_workerThread);
+    delete m_worker;
+    delete m_workerThread;
+  }
   delete m_nhm;
   delete ui;
 }
