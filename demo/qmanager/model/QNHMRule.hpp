@@ -1,8 +1,8 @@
 /**
  *******************************************************************************
- * @file QNHM.hpp
+ * @file QNHMRule.hpp
  * @author Keidan
- * @date 31/08/2016
+ * @date 06/09/2016
  * @par Project nhm->qmanager
  *
  * @par Copyright 2016 Keidan, all right reserved
@@ -22,8 +22,8 @@
  *         \/     \/     \/     \//_____/      \/
  *******************************************************************************
  */
-#ifndef QNHM_HPP
-  #define QNHM_HPP
+#ifndef QNHMRULE_HPP
+  #define QNHMRULE_HPP
 
   #include <QObject>
   #include <nhm.h>
@@ -52,43 +52,4 @@
   Q_DECLARE_METATYPE(QNHMRule*)
 
 
-  class QNHM : public QObject {
-    Q_OBJECT
-
-    public:
-      explicit QNHM(QObject *parent = 0);
-      ~QNHM();
-
-      /**
-       * @brief Open the connection with the NHM module.
-       * @return The return code of the nhm_open function.
-       */
-      int open();
-
-      /**
-       * @brief Close the connection with the NHM module.
-       * @return The return code of the nhm_close function.
-       */
-      void close();
-
-      /**
-       * @brief Add a new rule to the NHM module.
-       * @param rule The rule to add.
-       * @return The return code of the nhm_add_rule function.
-       */
-      int add(QNHMRule* rule);
-
-      /**
-       * @brief Remove a rule from the NHM module.
-       * @param rule The rule to remove.
-       * @return The return code of the nhm_del_rule function.
-       */
-      int remove(QNHMRule* rule);
-
-    private:
-      int m_fd;
-  };
-
-  Q_DECLARE_METATYPE(QNHM*)
-
-#endif // QNHM_HPP
+#endif // QNHMRULE_HPP

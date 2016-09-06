@@ -1,8 +1,8 @@
 /**
  *******************************************************************************
- * @file QNHM.cpp
+ * @file QNHMRule.cpp
  * @author Keidan
- * @date 31/08/2016
+ * @date 06/09/2016
  * @par Project nhm->qmanager
  *
  * @par Copyright 2016 Keidan, all right reserved
@@ -22,7 +22,7 @@
  *         \/     \/     \/     \//_____/      \/
  *******************************************************************************
  */
-#include "QNHM.hpp"
+#include "QNHMRule.hpp"
 
 QNHMRule::QNHMRule(QObject *parent) : QObject(parent) {
   memset(dev, 0, IFNAMSIZ);
@@ -55,50 +55,4 @@ void QNHMRule::copy(void* api_rule) {
   memcpy(&r->applied.last, &last, sizeof(struct timespec));
 }
 
-
-QNHM::QNHM(QObject *parent) : QObject(parent), m_fd(-1) {
-}
-
-QNHM::~QNHM() {
-  this->close();
-}
-
-/**
- * @brief Open the connection with the NHM module.
- * @return The return code of the nhm_open function.
- */
-int QNHM::open() {
-  m_fd = ::nhm_open();
-  return m_fd;
-}
-
-/**
- * @brief Close the connection with the NHM module.
- * @return The return code of the nhm_close function.
- */
-void QNHM::close() {
-  if(m_fd != -1) ::nhm_close(m_fd), m_fd = -1;
-}
-
-/**
- * @brief Add a new rule to the NHM module.
- * @param rule The rule to add.
- * @return The return code of the nhm_add_rule function.
- */
-int QNHM::add(QNHMRule* rule) {
-  struct nhm_s r;
-  rule->copy(&r);
-  return nhm_add_rule(m_fd, (&r));
-}
-
-/**
- * @brief Remove a rule from the NHM module.
- * @param rule The rule to remove.
- * @return The return code of the nhm_del_rule function.
- */
-int QNHM::remove(QNHMRule* rule) {
-  struct nhm_s r;
-  rule->copy(&r);
-  return nhm_del_rule(m_fd, (&r));
-}
 

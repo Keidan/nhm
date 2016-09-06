@@ -27,7 +27,7 @@
 
   #include <QDialog>
   #include "ui_QManagerDialogAddRule.h"
-  #include "QNHM.hpp"
+  #include "../model/QNHM.hpp"
 
   namespace Ui {
     class QManagerDialogAddRule;

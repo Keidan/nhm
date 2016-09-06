@@ -251,5 +251,11 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>okPushButton</sender>
+   <signal>clicked()</signal>
+   <receiver>QManagerDialogAddRule</receiver>
+   <slot>hide()</slot>
+  </connection>
  </connections>
 </ui>

@@ -35,6 +35,8 @@
 #define CONNECT_BUTTON_TEXT    "Connect"
 #define DISCONNECT_BUTTON_TEXT "Disconnect"
 
+
+
 QManagerWindow::QManagerWindow(QWidget *parent) :
   QDialog(parent), ui(new Ui::QManagerWindow), m_nhm(new QNHM) {
   ui->setupUi(this);
@@ -42,21 +44,36 @@ QManagerWindow::QManagerWindow(QWidget *parent) :
   ui->addRulePushButton->setEnabled(false);
   ui->removeRulePushButton->setEnabled(false);
 
+  /*
   QStringList headers;
   headers << "Device" << "Type" << "Dir" << "Proto" << "HW" << "IP" << "Applied" << "Hide";
   QStandardItemModel *model = new QStandardItemModel;
   model->setHorizontalHeaderLabels(headers); 
-  ui->rulesTableView->setModel(model);
-  ui->rulesTableView->setColumnHidden(7, true);
+*/
+ 
+  tableModel = new QTableModel(this);
+  proxyModel = new QSortFilterProxyModel(this);
+  proxyModel->setSourceModel(tableModel);
+  proxyModel->setDynamicSortFilter(true);
 
+  ui->rulesTableView->setModel(proxyModel);
+  ui->rulesTableView->setSortingEnabled(true);
+  ui->rulesTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+  ui->rulesTableView->horizontalHeader()->setStretchLastSection(true);
+  ui->rulesTableView->verticalHeader()->hide();
+  ui->rulesTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  ui->rulesTableView->setSelectionMode(QAbstractItemView::SingleSelection);
+  //ui->rulesTableView->setColumnHidden(7, true);
 
   /* add type for Thread use */
   qRegisterMetaType<QNHMRule*>("QNHMRule");
-  m_worker = new QTableViewWorker;
+  m_worker = new QNHMWorker(m_nhm);
   m_workerThread = new QThread;
   m_worker->moveToThread(m_workerThread);
 
   connect(m_worker, SIGNAL(updateRule(QNHMRule)), this, SLOT(workerUpdate(QNHMRule)));
+  connect(m_worker, SIGNAL(clearRule()), this, SLOT(workerClear()));
+  connect(m_worker, SIGNAL(error(QString)), this, SLOT(workerError(QString)));
   connect(m_worker, SIGNAL(stopped()), this, SLOT(workerFinished()));
   connect(m_worker, SIGNAL(running()), this, SLOT(workerStarted()));
 }
@@ -67,6 +84,10 @@ QManagerWindow::~QManagerWindow() {
     delete m_worker;
     delete m_workerThread;
   }
+  if(tableModel) 
+    delete tableModel, tableModel = NULL;
+  if(proxyModel) 
+    delete proxyModel, proxyModel = NULL;
   delete m_nhm;
   delete ui;
 }
@@ -116,10 +137,32 @@ void QManagerWindow::on_connectPushButton_clicked() {
 
 /**
  * @brief Called when the thread has new data to display.
- * @param rule The rule to display.
+ * @param r The rule to display.
  */
-void QManagerWindow::workerUpdate(const QNHMRule &rule) {
+void QManagerWindow::workerUpdate(const QNHMRule &r) {
   qDebug() << "updateRule";
+  tableModel->insertRows(0, 1, QModelIndex());
+  QModelIndex index = tableModel->index(0, 0, QModelIndex());
+  tableModel->setData(index, r.dev, Qt::DisplayRole);
+  index = tableModel->index(0, 1, QModelIndex());
+  tableModel->setData(index, r.nf_type, Qt::DisplayRole);
+  index = tableModel->index(0, 2, QModelIndex());
+  tableModel->setData(index, r.dir, Qt::DisplayRole);
+  index = tableModel->index(0, 3, QModelIndex());
+  tableModel->setData(index, r.eth_proto, Qt::DisplayRole);
+  index = tableModel->index(0, 4, QModelIndex());
+  tableModel->setData(index, r.hw, Qt::DisplayRole);
+  index = tableModel->index(0, 5, QModelIndex());
+  tableModel->setData(index, r.ip4, Qt::DisplayRole);
+  index = tableModel->index(0, 6, QModelIndex());
+  tableModel->setData(index, (long long)r.counter, Qt::DisplayRole);
+}
+
+/**
+ * @brief Called when the thread need to clear the rules.
+ */
+void QManagerWindow::workerClear() {
+  tableModel->clear();
 }
 
 /**
@@ -140,4 +183,12 @@ void  QManagerWindow::workerStarted() {
   ui->addRulePushButton->setEnabled(true);
   ui->removeRulePushButton->setEnabled(true);
   ui->connectPushButton->setText(DISCONNECT_BUTTON_TEXT);
+}
+
+
+/**
+ * @brief Called when an error is reached.
+ */
+void QManagerWindow::workerError(const QString &err) {
+  QMessageBox::critical(this, "NHM", err);
 }

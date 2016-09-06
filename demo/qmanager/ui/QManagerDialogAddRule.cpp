@@ -46,7 +46,7 @@ QManagerDialogAddRule::QManagerDialogAddRule(QWidget *parent) :
 }
 
 QManagerDialogAddRule::~QManagerDialogAddRule() {
-    delete ui;
+  delete ui;
 }
 
 

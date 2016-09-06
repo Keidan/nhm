@@ -14,14 +14,18 @@ TEMPLATE = app
 INCLUDEPATH += $$PWD/../../api
 
 SOURCES += main.cpp \
-        QManagerWindow.cpp \
-        QManagerDialogAddRule.cpp \
-        QNHM.cpp \
-        QTableViewWorker.cpp
+        ui/QManagerWindow.cpp \
+        ui/QManagerDialogAddRule.cpp \
+        ui/QTableModel.cpp \
+        model/QNHM.cpp \
+        model/QNHMRule.cpp \
+        model/QNHMWorker.cpp
 
-HEADERS  += QManagerWindow.hpp \
-        QManagerDialogAddRule.hpp \
-        QNHM.hpp \
-        QTableViewWorker.hpp
+HEADERS  += ui/QManagerWindow.hpp \
+        ui/QManagerDialogAddRule.hpp \
+        ui/QTableModel.hpp \
+        model/QNHM.hpp \
+        model/QNHMRule.hpp \
+        model/QNHMWorker.hpp
 
-FORMS    += QManagerWindow.ui QManagerDialogAddRule.ui
+FORMS    += ui/QManagerWindow.ui ui/QManagerDialogAddRule.ui

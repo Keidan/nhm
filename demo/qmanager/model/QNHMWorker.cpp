@@ -1,8 +1,8 @@
 /**
  *******************************************************************************
- * @file QTableViewWorker.cpp
+ * @file QNHMWorker.cpp
  * @author Keidan
- * @date 31/08/2016
+ * @date 06/092016
  * @par Project nhm->qmanager
  *
  * @par Copyright 2016 Keidan, all right reserved
@@ -23,21 +23,46 @@
  *******************************************************************************
  */
 #include <QApplication>
-#include "QTableViewWorker.hpp"
+#include "QNHMWorker.hpp"
 #include <QDebug>
+#include <errno.h>
 
-
-QTableViewWorker::QTableViewWorker(QObject *parent) : QObject(parent) {
+QNHMWorker::QNHMWorker(QNHM *nhm, QObject *parent) : QObject(parent), m_nhm(nhm) {
 
 }
 
-QTableViewWorker::~QTableViewWorker() {
+QNHMWorker::~QNHMWorker() {
 }
 
-void  QTableViewWorker::doWork() {
+void  QNHMWorker::doWork() {
   qDebug() << "doWork running:" << m_running << ", stopped: " << m_stopped;
   QNHMRule rule;
-  emit updateRule(rule);
+  /* number of rules */
+  int length = 0;
+  int ret = m_nhm->size(&length);
+  if(ret != -1) {
+    m_nhm->rewind();
+    emit clearRule();
+    /* read the rules from the LKM */
+    for(int i = 0; i < length; i++) {
+      QNHMRule rule;
+      /* Read the response from the LKM */
+      ret = m_nhm->get(&rule);
+      if (ret < 0) {
+	/* Display the error message */
+	QString err = "Failed to read the message from the LKM: ";
+	err.append(strerror(errno));
+	emit error(err);
+	break;
+      }
+      emit updateRule(rule);
+    }
+  } else {
+    /* Display the error message */
+    QString err = "Unable to read the number of rules: ";
+    err.append(strerror(errno));
+    emit error(err);
+  }
 
   if ( !m_running || m_stopped ) {
     if(!m_stopped_emit) {
@@ -54,7 +79,7 @@ void  QTableViewWorker::doWork() {
   QMetaObject::invokeMethod(this, "doWork", Qt::QueuedConnection);
 }
 
-void QTableViewWorker::stop(QThread *owner) {
+void QNHMWorker::stop(QThread *owner) {
   m_stopped = true;
   m_running = false;
   qDebug() << "workStop";
@@ -65,7 +90,7 @@ void QTableViewWorker::stop(QThread *owner) {
   owner->quit();
 }
 
-void QTableViewWorker::start(QThread *owner) {
+void QNHMWorker::start(QThread *owner) {
   m_stopped_emit = false;
   m_stopped = false;
   m_running = true;

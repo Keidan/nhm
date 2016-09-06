@@ -1,8 +1,8 @@
 /**
  *******************************************************************************
- * @file QTableViewWorker.hpp
+ * @file QNHMWorker.hpp
  * @author Keidan
- * @date 31/08/2016
+ * @date 06/09/2016
  * @par Project nhm->qmanager
  *
  * @par Copyright 2016 Keidan, all right reserved
@@ -22,26 +22,29 @@
  *         \/     \/     \/     \//_____/      \/
  *******************************************************************************
  */
-#ifndef QTABLEVIEWWORKER_HPP
-  #define QTABLEVIEWWORKER_HPP
+#ifndef QNHMWORKER_HPP
+  #define QNHMWORKER_HPP
 
   #include <QObject>
   #include <QThread>
+  #include <QString>
   #include "QNHM.hpp"
 
 
-  class QTableViewWorker : public QObject {
+  class QNHMWorker : public QObject {
     Q_OBJECT
 
     public:
-      explicit QTableViewWorker(QObject *parent = 0);
-      ~QTableViewWorker();
+      explicit QNHMWorker(QNHM *nhm, QObject *parent = 0);
+      ~QNHMWorker();
 
       void stop(QThread *owner);
       void start(QThread *owner);
 
     signals:
       void updateRule(const QNHMRule &data);
+      void clearRule();
+      void error(const QString &message);
       void stopped();
       void running();
 
@@ -49,9 +52,10 @@
       void doWork();
 
     private:
+      QNHM *m_nhm;
       volatile bool m_running;
       volatile bool m_stopped;
       bool m_stopped_emit;
   };
 
-#endif // QTABLEVIEWWORKER_HPP
+#endif // QNHMWORKER_HPP

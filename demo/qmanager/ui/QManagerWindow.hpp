@@ -27,8 +27,11 @@
 
   #include <QDialog>
   #include "QManagerDialogAddRule.hpp"
-  #include "QTableViewWorker.hpp"
+  #include "../model/QNHMWorker.hpp"
   #include <QThread>
+  #include <QVariant>
+  #include "QTableModel.hpp"
+  #include <QSortFilterProxyModel>
 
   namespace Ui {
     class QManagerWindow;
@@ -65,6 +68,11 @@
       void workerUpdate(const QNHMRule &rule);
 
       /**
+       * @brief Called when the thread need to clear the rules.
+       */
+      void workerClear();
+
+      /**
        * @brief Called when the thread is finished.
        */
       void workerFinished();
@@ -74,12 +82,19 @@
        */
       void workerStarted();
 
+      /**
+       * @brief Called when an error is reached.
+       */
+      void workerError(const QString &err);
+
     private:
       Ui::QManagerWindow *ui;
       QManagerDialogAddRule *m_addRuleDialog;
       QNHM *m_nhm;
       QThread *m_workerThread;
-      QTableViewWorker *m_worker;
+      QNHMWorker *m_worker;
+      QTableModel *tableModel;
+      QSortFilterProxyModel *proxyModel;
 
   };
 
