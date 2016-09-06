@@ -26,6 +26,7 @@
   #define QTABLEVIEWWORKER_HPP
 
   #include <QObject>
+  #include <QThread>
   #include "QNHM.hpp"
 
 
