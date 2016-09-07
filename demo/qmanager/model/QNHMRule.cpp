@@ -60,7 +60,7 @@ void QNHMRule::copy(void* api_rule) {
 
 QStringList QNHMRule::toStrings() {
   QStringList list;
-  for(int i = 0; i < COLUMNS_MAX; ++i)
+  for(int i = 0; i < COLUMNS_MAX - 1; ++i)
     list << toString(i);
   return list;
 }

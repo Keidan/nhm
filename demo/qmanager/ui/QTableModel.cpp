@@ -44,6 +44,15 @@ int QTableModel::columnCount(const QModelIndex &parent) const {
   return COLUMNS_MAX;
 }
 
+QVariant QTableModel::getColumn(int row, int column) const {
+  if (row >= m_list.size() || row < 0)
+    return QVariant();
+  QNHMRule *r = m_list.at(row);
+  if(column != COLUMN_HIDDEN)
+    return r->toString(column);
+  else return qVariantFromValue((void *) r);
+}
+
 QVariant QTableModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid())
     return QVariant();
@@ -53,7 +62,9 @@ QVariant QTableModel::data(const QModelIndex &index, int role) const {
 
   if (role == Qt::DisplayRole) {
     QNHMRule *r = m_list.at(index.row());
-    return r->toString(index.column());
+    if(index.column() != COLUMN_HIDDEN)
+      return r->toString(index.column());
+    else return qVariantFromValue((void *) r);
   }
   return QVariant();
 }
@@ -80,6 +91,8 @@ QVariant QTableModel::headerData(int section, Qt::Orientation orientation, int r
         return "PORT";
       case COLUMN_APPLIED:
         return "Applied";
+      case COLUMN_HIDDEN:
+        return "Hidden";
       default:
         return QVariant();
     }
@@ -117,10 +130,12 @@ bool QTableModel::setData(const QModelIndex &index, const QVariant &value, int r
   if (index.isValid()) {
     int row = index.row();
     QNHMRule *r = m_list.value(row);
-    r->fromString(index.column(), value.toString());
-    m_list.replace(row, r);
-    emit(dataChanged(index, index));
-    return true;
+    if(index.column() != COLUMN_HIDDEN) {
+      r->fromString(index.column(), value.toString());
+      m_list.replace(row, r);
+      emit(dataChanged(index, index));
+      return true;
+    }
   }
   return false;
 }

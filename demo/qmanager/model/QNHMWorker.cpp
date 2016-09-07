@@ -24,7 +24,6 @@
  */
 #include <QApplication>
 #include "QNHMWorker.hpp"
-#include <QDebug>
 #include <errno.h>
 
 QNHMWorker::QNHMWorker(QNHM *nhm, QObject *parent) : QObject(parent), m_nhm(nhm) {
@@ -35,7 +34,6 @@ QNHMWorker::~QNHMWorker() {
 }
 
 void  QNHMWorker::doWork() {
-  qDebug() << "doWork running:" << m_running << ", stopped: " << m_stopped;
   /* number of rules */
   int length = 0;
   int ret = m_nhm->size(&length);
@@ -72,7 +70,7 @@ void  QNHMWorker::doWork() {
     }
     return;
   }
-  sleep(1);
+  sleep(3);
   // do important work here
 
   // allow the thread's event loop to process other events before doing more "work"
@@ -83,7 +81,6 @@ void  QNHMWorker::doWork() {
 void QNHMWorker::stop(QThread *owner) {
   m_stopped = true;
   m_running = false;
-  qDebug() << "workStop";
   if(!m_stopped_emit) {
     m_stopped_emit = true;
     emit stopped();
@@ -96,7 +93,6 @@ void QNHMWorker::start(QThread *owner) {
   m_stopped = false;
   m_running = true;
   doWork();
-  qDebug() << "workStart";
   emit running();
   owner->start();
 }

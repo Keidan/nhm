@@ -58,6 +58,8 @@
 
       QList<QNHMRule*> getList();
 
+      QVariant getColumn(int row, int column) const;
+
       void clear();
     private:
       QList<QNHMRule*> m_list;

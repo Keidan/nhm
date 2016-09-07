@@ -38,7 +38,8 @@
   #define COLUMN_IP      5
   #define COLUMN_PORT    6
   #define COLUMN_APPLIED 7
-  #define COLUMNS_MAX    7
+  #define COLUMN_HIDDEN  8
+  #define COLUMNS_MAX    8
  
   class QNHMRule : public QObject {
     Q_OBJECT

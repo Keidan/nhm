@@ -56,7 +56,8 @@ QManagerWindow::QManagerWindow(QWidget *parent) :
   ui->rulesTableView->verticalHeader()->hide();
   ui->rulesTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
   ui->rulesTableView->setSelectionMode(QAbstractItemView::SingleSelection);
-  ui->rulesTableView->setColumnHidden(7, true);
+  ui->rulesTableView->setColumnHidden(COLUMN_HIDDEN, true);
+
 
   /* add type for Thread use */
   qRegisterMetaType<QNHMRule*>("QNHMRule");
@@ -92,7 +93,6 @@ QManagerWindow::~QManagerWindow() {
 void QManagerWindow::on_addRulePushButton_clicked() {
   QNHMRule* rule = m_addRuleDialog->display();
   if(rule) {
-    qDebug() << "rule->dev: " << rule->dev;
     if(m_nhm->add(rule)) {
       QString err = "Unable to add the rule: ";
       err.append(strerror(errno));
@@ -106,7 +106,14 @@ void QManagerWindow::on_addRulePushButton_clicked() {
  * @brief Method called when the user click on the 'Remove rule' button.
  */
 void QManagerWindow::on_removeRulePushButton_clicked() {
-
+  QItemSelectionModel *select = ui->rulesTableView->selectionModel();
+  if(select->hasSelection()) {
+    QModelIndex index = select->currentIndex();
+    int row = index.row();    
+    QNHMRule *r = (QNHMRule *) tableModel->getColumn(row, COLUMN_HIDDEN).value<void*>();
+    m_nhm->remove(r);
+    tableModel->removeRows(row, 1);
+  }
 }
 
 /**
@@ -134,13 +141,16 @@ void QManagerWindow::on_connectPushButton_clicked() {
  * @param r The rule to display.
  */
 void QManagerWindow::workerUpdate(QNHMRule* r) {
-  qDebug() << "updateRule r.dev: " << r->dev;
   tableModel->insertRows(0, 1, QModelIndex());
   QStringList list = r->toStrings();
+  QModelIndex index;
   for(int i = 0; i < list.size(); ++i) {
-    QModelIndex index = tableModel->index(0, i, QModelIndex());
+    index = tableModel->index(0, i, QModelIndex());
     tableModel->setData(index, list.at(i), Qt::DisplayRole);
   }
+  
+  index = tableModel->index(0, COLUMN_HIDDEN, QModelIndex());
+  tableModel->setData(index, qVariantFromValue((void *) r), Qt::DisplayRole);
   list.clear();
 }
 
@@ -155,7 +165,6 @@ void QManagerWindow::workerClear() {
  * @brief Called when the thread is finished.
  */
 void QManagerWindow::workerFinished() {
-  qDebug() << "workerFinished";
   m_nhm->close();
   ui->addRulePushButton->setEnabled(false);
   ui->removeRulePushButton->setEnabled(false);
