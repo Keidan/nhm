@@ -26,8 +26,20 @@
   #define QNHMRULE_HPP
 
   #include <QObject>
+  #include <QString>
+  #include <QStringList>
   #include <nhm.h>
 
+  #define COLUMN_DEVICE  0
+  #define COLUMN_TYPE    1
+  #define COLUMN_DIR     2
+  #define COLUMN_PROTO   3
+  #define COLUMN_HW      4
+  #define COLUMN_IP      5
+  #define COLUMN_PORT    6
+  #define COLUMN_APPLIED 7
+  #define COLUMNS_MAX    7
+ 
   class QNHMRule : public QObject {
     Q_OBJECT
 
@@ -48,6 +60,11 @@
       struct timespec last;               /*!< Last time where the rule is applied. */
 
      void copy(void* api_rule);
+
+     QStringList toStrings();
+     QString toString(int column);
+     void fromString(int column, const QString &value);
+
   };
   Q_DECLARE_METATYPE(QNHMRule*)
 

@@ -65,7 +65,7 @@
        * @brief Called when the thread has new data to display.
        * @param rule The rule to display.
        */
-      void workerUpdate(const QNHMRule &rule);
+      void workerUpdate(QNHMRule* rule);
 
       /**
        * @brief Called when the thread need to clear the rules.

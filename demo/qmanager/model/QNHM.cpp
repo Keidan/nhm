@@ -24,7 +24,6 @@
  */
 #include "QNHM.hpp"
 
-
 QNHM::QNHM(QObject *parent) : QObject(parent), m_fd(-1) {
 }
 

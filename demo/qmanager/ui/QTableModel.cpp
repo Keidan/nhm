@@ -26,7 +26,6 @@
 #include "../model/QNHMRule.hpp"
 #include <QDebug>
 
-#define TO_CSTR(obj) obj.toStdString().c_str()
 
 QTableModel::QTableModel(QObject *parent) : QAbstractTableModel(parent) {
 }
@@ -42,7 +41,7 @@ int QTableModel::rowCount(const QModelIndex &parent) const {
 
 int QTableModel::columnCount(const QModelIndex &parent) const {
   Q_UNUSED(parent);
-  return 6;
+  return COLUMNS_MAX;
 }
 
 QVariant QTableModel::data(const QModelIndex &index, int role) const {
@@ -54,56 +53,7 @@ QVariant QTableModel::data(const QModelIndex &index, int role) const {
 
   if (role == Qt::DisplayRole) {
     QNHMRule *r = m_list.at(index.row());
-
-    if (index.column() == 0)
-      return QString(r->dev);
-    else if (index.column() == 1) {
-      switch(r->nf_type) {
-	case NHM_NF_TYPE_DROP:
-	  return QString("DROP");
-	case NHM_NF_TYPE_ACCEPT:
-	  return QString("ACCEPT");
-	case NHM_NF_TYPE_STOLEN:
-	  return QString("STOLEN");
-	case NHM_NF_TYPE_QUEUE:
-	  return QString("QUEUE");
-	case NHM_NF_TYPE_REPEAT:
-	  return QString("REPEAT");
-	default:
-	  return QString("STOP");
-      }
-    } else if (index.column() == 2) {
-      switch(r->nf_type) {
-	case NHM_DIR_INPUT:
-	  return QString("INPUT");
-	case NHM_DIR_OUTPUT:
-	  return QString("OUTPUT");
-	default:
-	  return QString("BOTH");
-
-      }
-    } else if (index.column() == 3) {
-      QString str = QString::number(r->eth_proto);
-      if(r->ip_proto) {
-	str.append(" - ");
-	str.append(QString::number(r->ip_proto));
-      }
-      return str;
-    } else if (index.column() == 4) {
-      QString str = "";
-      str.sprintf("%02x:%02x:%02x:%02x:%02x:%02x", (int)r->hw[0], (int)r->hw[1], (int)r->hw[2], (int)r->hw[3], (int)r->hw[4], (int)r->hw[5]);
-      return str;
-    } else if (index.column() == 5) {
-      char bytes[4];
-      nhm_from_ipv4(bytes, 0, r->ip4);
-      return QString("").sprintf("%03d.%03d.%03d.%03d", (int)bytes[0], (int)bytes[1], (int)bytes[2], (int)bytes[3]);
-    } else if (index.column() == 6) {
-      QString str = "Count: ";
-      str.append(QString::number(r->counter));
-      str.append("\nLast: ");
-      str.append(QString("").sprintf("%lld.%.9ld", (long long)r->last.tv_sec, r->last.tv_nsec));
-      return str;
-    }
+    return r->toString(index.column());
   }
   return QVariant();
 }
@@ -114,19 +64,21 @@ QVariant QTableModel::headerData(int section, Qt::Orientation orientation, int r
 
   if (orientation == Qt::Horizontal) {
     switch (section) {
-      case 0:
+      case COLUMN_DEVICE:
         return "Device";
-      case 1:
+      case COLUMN_TYPE:
         return "Type";
-      case 2:
+      case COLUMN_DIR:
         return "Dir";
-      case 3:
+      case COLUMN_PROTO:
         return "Proto";
-      case 4:
+      case COLUMN_HW:
         return "HW";
-      case 5:
+      case COLUMN_IP:
         return "IP";
-      case 6:
+      case COLUMN_PORT:
+        return "PORT";
+      case COLUMN_APPLIED:
         return "Applied";
       default:
         return QVariant();
@@ -161,63 +113,11 @@ bool QTableModel::removeRows(int position, int rows, const QModelIndex &index) {
 }
 
 bool QTableModel::setData(const QModelIndex &index, const QVariant &value, int role) {
-  if (index.isValid() && role == Qt::EditRole) {
+  Q_UNUSED(role);
+  if (index.isValid()) {
     int row = index.row();
     QNHMRule *r = m_list.value(row);
-
-    qDebug() << "**column " << index.column() << ": " << value.toString();
-    if (index.column() == 0)
-      memcpy(r->dev, TO_CSTR(value.toString()), IFNAMSIZ);
-    else if (index.column() == 1) {
-      if(value.toString() == "DROP")
-	r->nf_type = NHM_NF_TYPE_DROP;
-      else if(value.toString() == "ACCEPT")
-	r->nf_type = NHM_NF_TYPE_ACCEPT;
-      else if(value.toString() == "STOLEN")
-	r->nf_type = NHM_NF_TYPE_STOLEN;
-      else if(value.toString() == "QUEUE")
-	r->nf_type = NHM_NF_TYPE_QUEUE;
-      else if(value.toString() == "REPEAT")
-	r->nf_type = NHM_NF_TYPE_REPEAT;
-      else
-	r->nf_type = NHM_NF_TYPE_STOP;
-    } else if (index.column() == 2) {
-      if(value.toString() == "INPUT")
-	r->dir = NHM_DIR_INPUT;
-      else if(value.toString() == "OUTPUT")
-	r->dir = NHM_DIR_OUTPUT;
-      else
-	r->dir = NHM_DIR_BOTH;
-    } else if (index.column() == 3) {
-      QString str = value.toString();
-      int idx = str.indexOf(" - ");
-      if(idx == -1) {
-	bool ok = false;
-	int number = str.toInt(&ok, 10);
-	if( ok ){
-	  r->eth_proto = number;
-	}
-      } else {
-	bool ok = false;
-	int number = str.left(idx).toInt(&ok, 10);
-	if( ok ){
-	  r->eth_proto = number;
-	  number = str.right(str.size() - idx).toInt(&ok, 10);
-	  if( ok ){
-	    r->ip_proto = number;
-	  }
-	}
-      }
-    } else if (index.column() == 4) {
-      qDebug() << "column 4: " << value.toString();
-    } else if (index.column() == 5) {
-      qDebug() << "column 5: " << value.toString();
-    } else if (index.column() == 6) {
-      qDebug() << "column 6: " << value.toString();
-    }
-    else
-      return false;
-
+    r->fromString(index.column(), value.toString());
     m_list.replace(row, r);
     emit(dataChanged(index, index));
     return true;

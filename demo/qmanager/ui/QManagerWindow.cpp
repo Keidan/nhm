@@ -43,13 +43,6 @@ QManagerWindow::QManagerWindow(QWidget *parent) :
   m_addRuleDialog = new QManagerDialogAddRule(this);
   ui->addRulePushButton->setEnabled(false);
   ui->removeRulePushButton->setEnabled(false);
-
-  /*
-  QStringList headers;
-  headers << "Device" << "Type" << "Dir" << "Proto" << "HW" << "IP" << "Applied" << "Hide";
-  QStandardItemModel *model = new QStandardItemModel;
-  model->setHorizontalHeaderLabels(headers); 
-*/
  
   tableModel = new QTableModel(this);
   proxyModel = new QSortFilterProxyModel(this);
@@ -63,7 +56,7 @@ QManagerWindow::QManagerWindow(QWidget *parent) :
   ui->rulesTableView->verticalHeader()->hide();
   ui->rulesTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
   ui->rulesTableView->setSelectionMode(QAbstractItemView::SingleSelection);
-  //ui->rulesTableView->setColumnHidden(7, true);
+  ui->rulesTableView->setColumnHidden(7, true);
 
   /* add type for Thread use */
   qRegisterMetaType<QNHMRule*>("QNHMRule");
@@ -71,7 +64,7 @@ QManagerWindow::QManagerWindow(QWidget *parent) :
   m_workerThread = new QThread;
   m_worker->moveToThread(m_workerThread);
 
-  connect(m_worker, SIGNAL(updateRule(QNHMRule)), this, SLOT(workerUpdate(QNHMRule)));
+  connect(m_worker, SIGNAL(updateRule(QNHMRule*)), this, SLOT(workerUpdate(QNHMRule*)));
   connect(m_worker, SIGNAL(clearRule()), this, SLOT(workerClear()));
   connect(m_worker, SIGNAL(error(QString)), this, SLOT(workerError(QString)));
   connect(m_worker, SIGNAL(stopped()), this, SLOT(workerFinished()));
@@ -99,6 +92,7 @@ QManagerWindow::~QManagerWindow() {
 void QManagerWindow::on_addRulePushButton_clicked() {
   QNHMRule* rule = m_addRuleDialog->display();
   if(rule) {
+    qDebug() << "rule->dev: " << rule->dev;
     if(m_nhm->add(rule)) {
       QString err = "Unable to add the rule: ";
       err.append(strerror(errno));
@@ -139,23 +133,15 @@ void QManagerWindow::on_connectPushButton_clicked() {
  * @brief Called when the thread has new data to display.
  * @param r The rule to display.
  */
-void QManagerWindow::workerUpdate(const QNHMRule &r) {
-  qDebug() << "updateRule";
+void QManagerWindow::workerUpdate(QNHMRule* r) {
+  qDebug() << "updateRule r.dev: " << r->dev;
   tableModel->insertRows(0, 1, QModelIndex());
-  QModelIndex index = tableModel->index(0, 0, QModelIndex());
-  tableModel->setData(index, r.dev, Qt::DisplayRole);
-  index = tableModel->index(0, 1, QModelIndex());
-  tableModel->setData(index, r.nf_type, Qt::DisplayRole);
-  index = tableModel->index(0, 2, QModelIndex());
-  tableModel->setData(index, r.dir, Qt::DisplayRole);
-  index = tableModel->index(0, 3, QModelIndex());
-  tableModel->setData(index, r.eth_proto, Qt::DisplayRole);
-  index = tableModel->index(0, 4, QModelIndex());
-  tableModel->setData(index, r.hw, Qt::DisplayRole);
-  index = tableModel->index(0, 5, QModelIndex());
-  tableModel->setData(index, r.ip4, Qt::DisplayRole);
-  index = tableModel->index(0, 6, QModelIndex());
-  tableModel->setData(index, (long long)r.counter, Qt::DisplayRole);
+  QStringList list = r->toStrings();
+  for(int i = 0; i < list.size(); ++i) {
+    QModelIndex index = tableModel->index(0, i, QModelIndex());
+    tableModel->setData(index, list.at(i), Qt::DisplayRole);
+  }
+  list.clear();
 }
 
 /**

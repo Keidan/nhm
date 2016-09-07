@@ -36,7 +36,6 @@ QNHMWorker::~QNHMWorker() {
 
 void  QNHMWorker::doWork() {
   qDebug() << "doWork running:" << m_running << ", stopped: " << m_stopped;
-  QNHMRule rule;
   /* number of rules */
   int length = 0;
   int ret = m_nhm->size(&length);
@@ -45,10 +44,11 @@ void  QNHMWorker::doWork() {
     emit clearRule();
     /* read the rules from the LKM */
     for(int i = 0; i < length; i++) {
-      QNHMRule rule;
+      QNHMRule *rule = new QNHMRule;
       /* Read the response from the LKM */
-      ret = m_nhm->get(&rule);
+      ret = m_nhm->get(rule);
       if (ret < 0) {
+	delete rule;
 	/* Display the error message */
 	QString err = "Failed to read the message from the LKM: ";
 	err.append(strerror(errno));
@@ -56,6 +56,7 @@ void  QNHMWorker::doWork() {
 	break;
       }
       emit updateRule(rule);
+      delete rule;
     }
   } else {
     /* Display the error message */

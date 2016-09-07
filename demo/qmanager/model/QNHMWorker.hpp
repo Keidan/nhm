@@ -42,7 +42,7 @@
       void start(QThread *owner);
 
     signals:
-      void updateRule(const QNHMRule &data);
+      void updateRule(QNHMRule* data);
       void clearRule();
       void error(const QString &message);
       void stopped();

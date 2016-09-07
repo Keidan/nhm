@@ -51,34 +51,28 @@ QManagerDialogAddRule::~QManagerDialogAddRule() {
 
 
 QNHMRule* QManagerDialogAddRule::display() {
+  foreach(QLineEdit *widget, this->findChildren<QLineEdit*>())
+    widget->clear();
   exec();
   struct in_addr in4;
   struct in6_addr in6;
   int i;
-  unsigned int imac[6];
   bool entry = false;
   QNHMRule* rule = new QNHMRule;
 
   /* add name */
   if(!ui->devnameLineEdit->text().isEmpty()) {
-    strncpy(rule->dev, TO_CSTR(ui->devnameLineEdit->text()), IFNAMSIZ);
+    rule->fromString(COLUMN_DEVICE, ui->devnameLineEdit->text());
     entry = true;
   }
 
   /* add direction */
   QString text = ui->directionCombobox->currentText();
-  if(text == "INPUT") rule->dir = NHM_DIR_INPUT;
-  else if(text == "OUTPUT") rule->dir = NHM_DIR_OUTPUT;
-  else rule->dir = NHM_DIR_BOTH;
+  rule->fromString(COLUMN_DIR, text);
 
   /* add nf type */
   text = ui->nfTypeCombobox->currentText();
-  if(text == "DROP") rule->nf_type = NHM_NF_TYPE_DROP;
-  else if(text == "QUEUE") rule->nf_type = NHM_NF_TYPE_QUEUE;
-  else if(text == "REPEAT") rule->nf_type = NHM_NF_TYPE_REPEAT;
-  else if(text == "STOLEN") rule->nf_type = NHM_NF_TYPE_STOLEN;
-  else if(text == "STOP") rule->nf_type = NHM_NF_TYPE_STOP;
-  else rule->nf_type = NHM_NF_TYPE_ACCEPT;
+  rule->fromString(COLUMN_TYPE, text);
 
   /* convert ip */
   if(!ui->ipLineEdit->text().isEmpty()) {
@@ -89,8 +83,10 @@ QNHMRule* QManagerDialogAddRule::display() {
         entry = true;
       } else
         QMessageBox::warning(this, "NHM", "Invalid IP address!");
-    } else
+    } else {
       entry = true;
+      rule->ip4 = in4.s_addr;
+    }
   }
   if(!ui->macLineEdit->text().isEmpty()) {
     QString s = ui->macLineEdit->text();
@@ -99,30 +95,30 @@ QNHMRule* QManagerDialogAddRule::display() {
     else {
       /* test the mac addr validity */
       for(i = 0; i != s.size(); i++)
-        if(!isxdigit(s.at(i).toLatin1()) && isxdigit(s.at(i).toLatin1()) != ':') break;
+        if(!isxdigit(s.at(i).toLatin1()) && s.at(i).toLatin1() != ':') break;
       if(i != s.size())
         QMessageBox::warning(this, "NHM", "Invalid MAC address format!");
       else {
-        sscanf(TO_CSTR(s), "%x:%x:%x:%x:%x:%x", &imac[0], &imac[1], &imac[2], &imac[3], &imac[4], &imac[5]);
-        for(i = 0; i < 6; i++) rule->hw[i] = (unsigned char)imac[i];
+	rule->fromString(COLUMN_HW, s);
         entry = true;
       }
     }
   }
-  if(!ui->portStartLineEdit->text().isEmpty()) {
-    rule->port[0] = ui->portStartLineEdit->text().toShort();
+  if(!ui->portStartLineEdit->text().isEmpty() || !ui->portEndLineEdit->text().isEmpty()) {
+    QString str = ui->portStartLineEdit->text();
+    if(!ui->portEndLineEdit->text().isEmpty()) {
+      str.append(":").append(ui->portEndLineEdit->text());
+    }
+    rule->fromString(COLUMN_PORT, str);
     entry = true;
   }
-  if(!ui->portEndLineEdit->text().isEmpty()) {
-    rule->port[1] = ui->portEndLineEdit->text().toShort();
-    entry = true;
-  }
-  if(!ui->ethProtoLineEdit->text().isEmpty()) {
-    rule->eth_proto = ui->ethProtoLineEdit->text().toShort();
-    entry = true;
-  }
-  if(!ui->ipProtoLineEdit->text().isEmpty()) {
-    rule->ip_proto = ui->ipProtoLineEdit->text().toShort();
+  
+  if(!ui->ethProtoLineEdit->text().isEmpty() || !ui->ipProtoLineEdit->text().isEmpty()) {
+    QString str = ui->ethProtoLineEdit->text();
+    if(!ui->ipProtoLineEdit->text().isEmpty()) {
+      str.append(" - ").append(ui->ipProtoLineEdit->text());
+    }
+    rule->fromString(COLUMN_PROTO, str);
     entry = true;
   }
   if(!entry) {
