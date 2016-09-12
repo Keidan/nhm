@@ -1,7 +1,7 @@
 nhm
 ===
 
-(GPL) Netfilter Hook Module is a FREE kernel module.
+(GPL) LKM Netfilter Hook.
 
 
 
