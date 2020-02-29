@@ -1,26 +1,15 @@
 /**
- *******************************************************************************
  * @file QNHMRule.hpp
  * @author Keidan
- * @date 06/09/2016
- * @par Project nhm->qmanager
+ * @copyright GNU GENERAL PUBLIC LICENSE Version 3
  *
- * @par Copyright 2016 Keidan, all right reserved
- *
- *      This software is distributed in the hope that it will be useful, but
- *      WITHOUT ANY WARRANTY.
- *
- *      License summary : You can modify and redistribute the sources code and
- *      binaries. You can send me the bug-fix
- *
- *      Term of the license in in the file license.txt.
  *    _____
  *   /     \ _____    ____ _____     ____   ___________
  *  /  \ /  \\__  \  /    \\__  \   / ___\_/ __ \_  __  \
  * /    Y    \/ __ \|   |  \/ __ \_/ /_/  >  ___/|  | \/
  * \____|__  (____  /___|  (____  /\___  / \___  >__|
  *         \/     \/     \/     \//_____/      \/
- *******************************************************************************
+ *
  */
 #ifndef QNHMRULE_HPP
   #define QNHMRULE_HPP
@@ -30,23 +19,24 @@
   #include <QStringList>
   #include <nhm.h>
 
-  #define COLUMN_DEVICE  0
-  #define COLUMN_TYPE    1
-  #define COLUMN_DIR     2
-  #define COLUMN_PROTO   3
-  #define COLUMN_HW      4
-  #define COLUMN_IP      5
-  #define COLUMN_PORT    6
-  #define COLUMN_APPLIED 7
-  #define COLUMN_HIDDEN  8
-  #define COLUMNS_MAX    8
- 
-  class QNHMRule : public QObject {
-    Q_OBJECT
+  constexpr std::uint8_t COLUMN_DEVICE  = 0;
+  constexpr std::uint8_t COLUMN_TYPE    = 1;
+  constexpr std::uint8_t COLUMN_DIR     = 2;
+  constexpr std::uint8_t COLUMN_PROTO   = 3;
+  constexpr std::uint8_t COLUMN_HW      = 4;
+  constexpr std::uint8_t COLUMN_IP      = 5;
+  constexpr std::uint8_t COLUMN_PORT    = 6;
+  constexpr std::uint8_t COLUMN_APPLIED = 7;
+  constexpr std::uint8_t COLUMN_HIDDEN  = 8;
+  constexpr std::uint8_t COLUMNS_MAX    = COLUMN_HIDDEN;
+
+  class QNHMRule : public QObject
+  {
+      Q_OBJECT
 
     public:
       explicit QNHMRule(QObject *parent = 0);
-      ~QNHMRule();
+      virtual ~QNHMRule() = default;
 
       char            dev[IFNAMSIZ];      /*!< Network device name */
       nhm_nf_type_te  nf_type;            /*!< Netfilter policy. */
@@ -60,11 +50,11 @@
       unsigned long   counter;            /*!< Simple counter to obtain the number of times the rule is applied.*/
       struct timespec last;               /*!< Last time where the rule is applied. */
 
-     void copy(void* api_rule);
+      auto copy(void* api_rule) -> void;
 
-     QStringList toStrings();
-     QString toString(int column);
-     void fromString(int column, const QString &value);
+      auto toStrings() -> QStringList;
+      auto toString(int column) -> QString;
+      auto fromString(int column, const QString &value) -> void;
 
   };
   Q_DECLARE_METATYPE(QNHMRule*)

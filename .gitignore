@@ -15,3 +15,5 @@ module/certs/signing_key.x509
 moc_*
 ui_*
 demo/qmanager/Makefile
+demo/qmanager/.qmake.stash
+module/.cache.mk

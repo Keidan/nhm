@@ -1,5 +1,6 @@
-nhm
-===
+# nhm
+[![Build Status](https://img.shields.io/travis/Keidan/nhm/master.svg?style=plastic)](https://travis-ci.org/Keidan/nhm)
+[![GitHub license](https://img.shields.io/github/license/Keidan/nhm.svg?style=plastic)](https://github.com/Keidan/nhm/blob/master/LICENSE)
 
 (GPL) LKM Netfilter Hook.
 
@@ -9,8 +10,7 @@ This module is distributed in the hope that it will be useful, but WITHOUT ANY W
 
 
 
-Instructions
-============
+## Instructions
 
 
 Make targets:
@@ -35,14 +35,13 @@ Insert the module:
 	insmod module/nhm.ko
 
 
-Or with the support of the IPv6:
+Or with IPv6 support:
 
 	insmod module/nhm.ko ipv6_support=1
 
 
 
-Udev
-====
+## Udev
 
 
 To get the UDEV information (after inserting the module):
@@ -50,40 +49,22 @@ To get the UDEV information (after inserting the module):
 	udevadm info -a -p /sys/class/nhm/nhm
 
 
-To insert the module with the specific rights:
+To insert the module with specific rights:
 
 	KERNEL=="nhm", SUBSYSTEM=="nhm", MODE="0666", GROUP="plugdev"
 
 
 
-API
-====
+## API
 
 
-The NHM module offers an API (api/nhm.h) specifying the transfered datas format and the list of IOCTL's that you can use to monitor the module.
+The NHM module provides an API (api/nhm.h) specifying the format of the transferred data and the list of IOCTLs that you can use to monitor the module.
 
-You can also read the device (/dev/nhm) to obtain the list of the rules known by the module (circular buffer).
+You can also read the device (/dev/nhm) to get the list of rules known by the module (circular buffer).
 
-The demo codes which explain how to communicate with the nhm module are availables into the demo folder.
+The demo codes that explain how to communicate with the nhm module are available in the demo folder.
   
 
-License (like GPL)
-==================
+## License
 
-	You can:
-		- Redistribute the sources code and binaries.
-		- Modify the Sources code.
-		- Use a part of the sources (less than 50%) in an other software, just write somewhere "nhm is great" visible by the user (on your product or on your website with a link to my page).
-		- Redistribute the modification only if you want.
-		- Send me the bug-fix (it could be great).
-		- Pay me a beer or some other things.
-		- Print the source code on WC paper ...
-	You can NOT:
-		- Earn money with this Software (But I can).
-		- Add malware in the Sources.
-		- Do something bad with the sources.
-		- Use it to travel in the space with a toaster.
-	
-	I reserve the right to change this licence. If it change the version of the copy you have keep its own license
-
-
+[GPLv3](https://github.com/Keidan/nhm/blob/master/LICENSE)

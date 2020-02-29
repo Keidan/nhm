@@ -1,67 +1,63 @@
 /**
-*******************************************************************************
-* @file QTableModel.cpp
-* @author Keidan
-* @date 06/09/2016
-* @par Project nhm->qmanager
-*
-* @par Copyright 2016 Keidan, all right reserved
-*
-*      This software is distributed in the hope that it will be useful, but
-*      WITHOUT ANY WARRANTY.
-*
-*      License summary : You can modify and redistribute the sources code and
-*      binaries. You can send me the bug-fix
-*
-*      Term of the license in in the file license.txt.
-*    _____
-*   /     \ _____    ____ _____     ____   ___________
-*  /  \ /  \\__  \  /    \\__  \   / ___\_/ __ \_  __  \
-* /    Y    \/ __ \|   |  \/ __ \_/ /_/  >  ___/|  | \/
-* \____|__  (____  /___|  (____  /\___  / \___  >__|
-*         \/     \/     \/     \//_____/      \/
-*******************************************************************************
-*/
+ * @file QTableModel.cpp
+ * @author Keidan
+ * @copyright GNU GENERAL PUBLIC LICENSE Version 3
+ *
+ *    _____
+ *   /     \ _____    ____ _____     ____   ___________
+ *  /  \ /  \\__  \  /    \\__  \   / ___\_/ __ \_  __  \
+ * /    Y    \/ __ \|   |  \/ __ \_/ /_/  >  ___/|  | \/
+ * \____|__  (____  /___|  (____  /\___  / \___  >__|
+ *         \/     \/     \/     \//_____/      \/
+ *
+ */
 #include "QTableModel.hpp"
 #include "../model/QNHMRule.hpp"
 #include <QDebug>
 
 
-QTableModel::QTableModel(QObject *parent) : QAbstractTableModel(parent) {
+QTableModel::QTableModel(QObject *parent) : QAbstractTableModel(parent)
+{
 }
 
-QTableModel::QTableModel(QList<QNHMRule*> list, QObject *parent) : QAbstractTableModel(parent) {
+QTableModel::QTableModel(QList<QNHMRule*> list, QObject *parent) : QAbstractTableModel(parent)
+{
   m_list = list;
 }
 
-int QTableModel::rowCount(const QModelIndex &parent) const {
+auto QTableModel::rowCount(const QModelIndex &parent) const -> int
+{
   Q_UNUSED(parent);
   return m_list.size();
 }
 
-int QTableModel::columnCount(const QModelIndex &parent) const {
+auto QTableModel::columnCount(const QModelIndex &parent) const -> int
+{
   Q_UNUSED(parent);
   return COLUMNS_MAX;
 }
 
-QVariant QTableModel::getColumn(int row, int column) const {
+auto QTableModel::getColumn(int row, int column) const -> QVariant
+{
   if (row >= m_list.size() || row < 0)
     return QVariant();
-  QNHMRule *r = m_list.at(row);
+  auto r = m_list.at(row);
   if(column != COLUMN_HIDDEN)
     return r->toString(column);
   else return qVariantFromValue((void *) r);
 }
 
-QVariant QTableModel::data(const QModelIndex &index, int role) const {
+auto QTableModel::data(const QModelIndex &index, int role) const -> QVariant
+{
   if (!index.isValid())
     return QVariant();
 
   if (index.row() >= m_list.size() || index.row() < 0)
     return QVariant();
 
-  if (role == Qt::DisplayRole) {
-    QNHMRule *r = m_list.at(index.row());
+  if (role == Qt::DisplayRole)
+  {
+    auto r = m_list.at(index.row());
     if(index.column() != COLUMN_HIDDEN)
       return r->toString(index.column());
     else return qVariantFromValue((void *) r);
@@ -69,12 +65,15 @@ QVariant QTableModel::data(const QModelIndex &index, int role) const {
   return QVariant();
 }
 
-QVariant QTableModel::headerData(int section, Qt::Orientation orientation, int role) const {
+auto QTableModel::headerData(int section, Qt::Orientation orientation, int role) const -> QVariant
+{
   if (role != Qt::DisplayRole)
     return QVariant();
 
-  if (orientation == Qt::Horizontal) {
-    switch (section) {
+  if (orientation == Qt::Horizontal)
+  {
+    switch (section)
+    {
       case COLUMN_DEVICE:
         return "Device";
       case COLUMN_TYPE:
@@ -100,12 +99,14 @@ QVariant QTableModel::headerData(int section, Qt::Orientation orientation, int r
   return QVariant();
 }
 
-bool QTableModel::insertRows(int position, int rows, const QModelIndex &index) {
+auto QTableModel::insertRows(int position, int rows, const QModelIndex &index) -> bool
+{
   Q_UNUSED(index);
   beginInsertRows(QModelIndex(), position, position+rows-1);
 
-  for (int row=0; row < rows; row++) {
-    QNHMRule *r = new QNHMRule;
+  for (int row=0; row < rows; row++)
+  {
+    auto r = new QNHMRule;
     m_list.insert(position, r);
   }
 
@@ -113,11 +114,13 @@ bool QTableModel::insertRows(int position, int rows, const QModelIndex &index) {
   return true;
 }
 
-bool QTableModel::removeRows(int position, int rows, const QModelIndex &index) {
+auto QTableModel::removeRows(int position, int rows, const QModelIndex &index) -> bool
+{
   Q_UNUSED(index);
   beginRemoveRows(QModelIndex(), position, position+rows-1);
 
-  for (int row=0; row < rows; ++row) {
+  for (auto row = 0; row < rows; ++row)
+  {
     delete m_list.at(position);
     m_list.removeAt(position);
   }
@@ -125,12 +128,15 @@ bool QTableModel::removeRows(int position, int rows, const QModelIndex &index) {
   return true;
 }
 
-bool QTableModel::setData(const QModelIndex &index, const QVariant &value, int role) {
+auto QTableModel::setData(const QModelIndex &index, const QVariant &value, int role) -> bool
+{
   Q_UNUSED(role);
-  if (index.isValid()) {
-    int row = index.row();
-    QNHMRule *r = m_list.value(row);
-    if(index.column() != COLUMN_HIDDEN) {
+  if (index.isValid())
+  {
+    auto row = index.row();
+    auto r = m_list.value(row);
+    if(index.column() != COLUMN_HIDDEN)
+    {
       r->fromString(index.column(), value.toString());
       m_list.replace(row, r);
       emit(dataChanged(index, index));
@@ -140,20 +146,23 @@ bool QTableModel::setData(const QModelIndex &index, const QVariant &value, int r
   return false;
 }
 
-Qt::ItemFlags QTableModel::flags(const QModelIndex &index) const {
+auto QTableModel::flags(const QModelIndex &index) const -> Qt::ItemFlags
+{
   if (!index.isValid())
     return Qt::ItemIsEnabled;
   return QAbstractTableModel::flags(index);
 }
 
-QList<QNHMRule*> QTableModel::getList() {
+auto QTableModel::getList() -> QList<QNHMRule*>
+{
   return m_list;
 }
 
-void QTableModel::clear(){
-   this->beginResetModel();
-   for (int row=0; row < m_list.size(); ++row)
-     delete m_list.at(row);
-   m_list.clear();
-   this->endResetModel();
+auto QTableModel::clear() -> void
+{
+  this->beginResetModel();
+  for (auto row = 0; row < m_list.size(); ++row)
+    delete m_list.at(row);
+  m_list.clear();
+  this->endResetModel();
 }

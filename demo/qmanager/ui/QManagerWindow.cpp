@@ -1,27 +1,16 @@
 /**
-*******************************************************************************
-* @file QManagerWindow.hpp
-* @author Keidan
-* @date 30/08/2016
-* @par Project nhm->qmanager
-*
-* @par Copyright 2016 Keidan, all right reserved
-*
-*      This software is distributed in the hope that it will be useful, but
-*      WITHOUT ANY WARRANTY.
-*
-*      License summary : You can modify and redistribute the sources code and
-*      binaries. You can send me the bug-fix
-*
-*      Term of the license in in the file license.txt.
-*    _____
-*   /     \ _____    ____ _____     ____   ___________
-*  /  \ /  \\__  \  /    \\__  \   / ___\_/ __ \_  __  \
-* /    Y    \/ __ \|   |  \/ __ \_/ /_/  >  ___/|  | \/
-* \____|__  (____  /___|  (____  /\___  / \___  >__|
-*         \/     \/     \/     \//_____/      \/
-*******************************************************************************
-*/
+ * @file QManagerWindow.cpp
+ * @author Keidan
+ * @copyright GNU GENERAL PUBLIC LICENSE Version 3
+ *
+ *    _____
+ *   /     \ _____    ____ _____     ____   ___________
+ *  /  \ /  \\__  \  /    \\__  \   / ___\_/ __ \_  __  \
+ * /    Y    \/ __ \|   |  \/ __ \_/ /_/  >  ___/|  | \/
+ * \____|__  (____  /___|  (____  /\___  / \___  >__|
+ *         \/     \/     \/     \//_____/      \/
+ *
+ */
 #include "QManagerWindow.hpp"
 #include "ui_QManagerWindow.h"
 #include <QString>
@@ -32,36 +21,37 @@
 #include <errno.h>
 #include <string.h>
 
-#define CONNECT_BUTTON_TEXT    "Connect"
-#define DISCONNECT_BUTTON_TEXT "Disconnect"
+constexpr char CONNECT_BUTTON_TEXT    [] = "Connect\0";
+constexpr char DISCONNECT_BUTTON_TEXT [] = "Disconnect\0";
 
 
 
 QManagerWindow::QManagerWindow(QWidget *parent) :
-  QDialog(parent), ui(new Ui::QManagerWindow), m_nhm(new QNHM) {
-  ui->setupUi(this);
+  QDialog(parent), m_ui(new Ui::QManagerWindow), m_nhm(new QNHM())
+{
+  m_ui->setupUi(this);
   m_addRuleDialog = new QManagerDialogAddRule(this);
-  ui->addRulePushButton->setEnabled(false);
-  ui->removeRulePushButton->setEnabled(false);
- 
-  tableModel = new QTableModel(this);
-  proxyModel = new QSortFilterProxyModel(this);
-  proxyModel->setSourceModel(tableModel);
-  proxyModel->setDynamicSortFilter(true);
+  m_ui->addRulePushButton->setEnabled(false);
+  m_ui->removeRulePushButton->setEnabled(false);
 
-  ui->rulesTableView->setModel(proxyModel);
-  ui->rulesTableView->setSortingEnabled(true);
-  ui->rulesTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-  ui->rulesTableView->horizontalHeader()->setStretchLastSection(true);
-  ui->rulesTableView->verticalHeader()->hide();
-  ui->rulesTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-  ui->rulesTableView->setSelectionMode(QAbstractItemView::SingleSelection);
-  ui->rulesTableView->setColumnHidden(COLUMN_HIDDEN, true);
+  m_tableModel = new QTableModel(this);
+  m_proxyModel = new QSortFilterProxyModel(this);
+  m_proxyModel->setSourceModel(m_tableModel);
+  m_proxyModel->setDynamicSortFilter(true);
+
+  m_ui->rulesTableView->setModel(m_proxyModel);
+  m_ui->rulesTableView->setSortingEnabled(true);
+  m_ui->rulesTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+  m_ui->rulesTableView->horizontalHeader()->setStretchLastSection(true);
+  m_ui->rulesTableView->verticalHeader()->hide();
+  m_ui->rulesTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  m_ui->rulesTableView->setSelectionMode(QAbstractItemView::SingleSelection);
+  m_ui->rulesTableView->setColumnHidden(COLUMN_HIDDEN, true);
 
 
   /* add type for Thread use */
   qRegisterMetaType<QNHMRule*>("QNHMRule");
-  m_worker = new QNHMWorker(m_nhm);
+  m_worker = new QNHMWorker(*m_nhm);
   m_workerThread = new QThread;
   m_worker->moveToThread(m_workerThread);
 
@@ -72,28 +62,33 @@ QManagerWindow::QManagerWindow(QWidget *parent) :
   connect(m_worker, SIGNAL(running()), this, SLOT(workerStarted()));
 }
 
-QManagerWindow::~QManagerWindow() {
-  if(m_worker) {
+QManagerWindow::~QManagerWindow()
+{
+  if(m_worker)
+  {
     m_worker->stop(m_workerThread);
     delete m_worker;
     delete m_workerThread;
   }
-  if(tableModel) 
-    delete tableModel, tableModel = NULL;
-  if(proxyModel) 
-    delete proxyModel, proxyModel = NULL;
+  if(m_tableModel)
+    delete m_tableModel, m_tableModel = NULL;
+  if(m_proxyModel)
+    delete m_proxyModel, m_proxyModel = NULL;
   delete m_nhm;
-  delete ui;
+  delete m_ui;
 }
 
 
 /**
  * @brief Method called when the user click on the 'Add rule' button.
  */
-void QManagerWindow::on_addRulePushButton_clicked() {
-  QNHMRule* rule = m_addRuleDialog->display();
-  if(rule) {
-    if(m_nhm->add(rule)) {
+auto QManagerWindow::on_addRulePushButton_clicked() -> void
+{
+  auto rule = m_addRuleDialog->display();
+  if(rule)
+  {
+    if(m_nhm->add(rule))
+    {
       QString err = "Unable to add the rule: ";
       err.append(strerror(errno));
       QMessageBox::critical(this, "NHM", err);
@@ -105,32 +100,41 @@ void QManagerWindow::on_addRulePushButton_clicked() {
 /**
  * @brief Method called when the user click on the 'Remove rule' button.
  */
-void QManagerWindow::on_removeRulePushButton_clicked() {
-  QItemSelectionModel *select = ui->rulesTableView->selectionModel();
-  if(select->hasSelection()) {
-    QModelIndex index = select->currentIndex();
-    int row = index.row();    
-    QNHMRule *r = (QNHMRule *) tableModel->getColumn(row, COLUMN_HIDDEN).value<void*>();
+auto QManagerWindow::on_removeRulePushButton_clicked() -> void
+{
+  auto select = m_ui->rulesTableView->selectionModel();
+  if(select->hasSelection())
+  {
+    auto index = select->currentIndex();
+    auto row = index.row();
+    auto r = reinterpret_cast<QNHMRule *>(m_tableModel->getColumn(row, COLUMN_HIDDEN).value<void*>());
     m_nhm->remove(r);
-    tableModel->removeRows(row, 1);
+    m_tableModel->removeRows(row, 1);
   }
 }
 
 /**
  * @brief Method called when the user click on the 'Connect rule' button.
  */
-void QManagerWindow::on_connectPushButton_clicked() {
-  if(ui->connectPushButton->text() == DISCONNECT_BUTTON_TEXT) {
+auto QManagerWindow::on_connectPushButton_clicked() -> void
+{
+  if(m_ui->connectPushButton->text() == DISCONNECT_BUTTON_TEXT)
+  {
     m_worker->stop(m_workerThread);
-  } else {
+  }
+  else
+  {
     /* open the connection with the module */
-    if(m_nhm->open() == -1) {
+    if(m_nhm->open() == -1)
+    {
       /* Display the error message */
       QString err = NHM_DEVICE_PATH;
       err.append(": ").append(strerror(errno));
       QMessageBox::critical(this, "NHM", err);
       return;
-    } else {
+    }
+    else
+    {
       m_worker->start(m_workerThread);
     }
   }
@@ -140,50 +144,56 @@ void QManagerWindow::on_connectPushButton_clicked() {
  * @brief Called when the thread has new data to display.
  * @param r The rule to display.
  */
-void QManagerWindow::workerUpdate(QNHMRule* r) {
-  tableModel->insertRows(0, 1, QModelIndex());
-  QStringList list = r->toStrings();
-  QModelIndex index;
-  for(int i = 0; i < list.size(); ++i) {
-    index = tableModel->index(0, i, QModelIndex());
-    tableModel->setData(index, list.at(i), Qt::DisplayRole);
+auto QManagerWindow::workerUpdate(QNHMRule* r) -> void
+{
+  m_tableModel->insertRows(0, 1, QModelIndex());
+  auto list = r->toStrings();
+
+  for(auto i = 0; i < list.size(); ++i)
+  {
+    auto index = m_tableModel->index(0, i, QModelIndex());
+    m_tableModel->setData(index, list.at(i), Qt::DisplayRole);
   }
-  
-  index = tableModel->index(0, COLUMN_HIDDEN, QModelIndex());
-  tableModel->setData(index, qVariantFromValue((void *) r), Qt::DisplayRole);
+
+  auto index = m_tableModel->index(0, COLUMN_HIDDEN, QModelIndex());
+  m_tableModel->setData(index, qVariantFromValue((void *) r), Qt::DisplayRole);
   list.clear();
 }
 
 /**
  * @brief Called when the thread need to clear the rules.
  */
-void QManagerWindow::workerClear() {
-  tableModel->clear();
+auto QManagerWindow::workerClear() -> void
+{
+  m_tableModel->clear();
 }
 
 /**
  * @brief Called when the thread is finished.
  */
-void QManagerWindow::workerFinished() {
+auto QManagerWindow::workerFinished() -> void
+{
   m_nhm->close();
-  ui->addRulePushButton->setEnabled(false);
-  ui->removeRulePushButton->setEnabled(false);
-  ui->connectPushButton->setText(CONNECT_BUTTON_TEXT);
+  m_ui->addRulePushButton->setEnabled(false);
+  m_ui->removeRulePushButton->setEnabled(false);
+  m_ui->connectPushButton->setText(CONNECT_BUTTON_TEXT);
 }
 
 /**
  * @brief Called when the thread is started.
  */
-void  QManagerWindow::workerStarted() {
-  ui->addRulePushButton->setEnabled(true);
-  ui->removeRulePushButton->setEnabled(true);
-  ui->connectPushButton->setText(DISCONNECT_BUTTON_TEXT);
+auto QManagerWindow::workerStarted() -> void
+{
+  m_ui->addRulePushButton->setEnabled(true);
+  m_ui->removeRulePushButton->setEnabled(true);
+  m_ui->connectPushButton->setText(DISCONNECT_BUTTON_TEXT);
 }
 
 
 /**
  * @brief Called when an error is reached.
  */
-void QManagerWindow::workerError(const QString &err) {
+auto QManagerWindow::workerError(const QString &err) -> void
+{
   QMessageBox::critical(this, "NHM", err);
 }

@@ -1,26 +1,15 @@
 /**
- *******************************************************************************
  * @file QNHM.hpp
  * @author Keidan
- * @date 31/08/2016
- * @par Project nhm->qmanager
+ * @copyright GNU GENERAL PUBLIC LICENSE Version 3
  *
- * @par Copyright 2016 Keidan, all right reserved
- *
- *      This software is distributed in the hope that it will be useful, but
- *      WITHOUT ANY WARRANTY.
- *
- *      License summary : You can modify and redistribute the sources code and
- *      binaries. You can send me the bug-fix
- *
- *      Term of the license in in the file license.txt.
  *    _____
  *   /     \ _____    ____ _____     ____   ___________
  *  /  \ /  \\__  \  /    \\__  \   / ___\_/ __ \_  __  \
  * /    Y    \/ __ \|   |  \/ __ \_/ /_/  >  ___/|  | \/
  * \____|__  (____  /___|  (____  /\___  / \___  >__|
  *         \/     \/     \/     \//_____/      \/
- *******************************************************************************
+ *
  */
 #ifndef QNHM_HPP
   #define QNHM_HPP
@@ -29,58 +18,59 @@
   #include "QNHMRule.hpp"
 
 
-  class QNHM : public QObject {
-    Q_OBJECT
+  class QNHM : public QObject
+  {
+      Q_OBJECT
 
     public:
       explicit QNHM(QObject *parent = 0);
-      ~QNHM();
+      virtual ~QNHM();
 
       /**
        * @brief Open the connection with the NHM module.
        * @return The return code of the nhm_open function.
        */
-      int open();
+      auto open() -> int;
 
       /**
        * @brief Close the connection with the NHM module.
        * @return The return code of the nhm_close function.
        */
-      void close();
+      auto close() -> void;
 
       /**
        * @brief Add a new rule to the NHM module.
        * @param rule The rule to add.
        * @return The return code of the nhm_add_rule function.
        */
-      int add(QNHMRule* rule);
+      auto add(QNHMRule *rule) -> int;
 
       /**
        * @brief Read the rules from the NHM module.
        * @param rules The readed rules.
        * @return The return code of the nhm_get_rule function.
        */
-      int get(QNHMRule* rule);
+      auto get(QNHMRule *rule) -> int;
 
       /**
        * @brief Remove a rule from the NHM module.
        * @param rule The rule to remove.
        * @return The return code of the nhm_del_rule function.
        */
-      int remove(QNHMRule* rule);
+      auto remove(QNHMRule *rule) -> int;
 
       /**
        * @brief Get the number of rules to read.
        * @param output The length.
        * @return The return code of the ioctl function (man ioctl)
        */
-      int size(int *output);
+      auto size(int &output) -> int;
 
       /**
        * @brief Reset the internal LKM loop index.
        * @return The return code of the nhm_read_rewind function.
        */
-      int rewind();
+      auto rewind() -> int;
 
     private:
       int m_fd;

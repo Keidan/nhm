@@ -1,0 +1,18 @@
+sudo: false		
+language: cpp
+compiler:
+    - gcc
+dist: xenial
+
+before_install:
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+
+install: 
+  - sudo apt-get install -qq g++-7 qt5-qmake qt5-default linux-headers-$(uname -r)
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 90
+  - "[ $CXX = g++ ] && export CXX=g++-7 || true"
+  - "[ $CXX = gcc ] && export CXX=gcc-7 || true"
+  
+script:
+  - make

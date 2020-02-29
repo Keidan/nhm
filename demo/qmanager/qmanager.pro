@@ -8,7 +8,7 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += qt debug
+CONFIG += c++11 qt debug
 
 TARGET = qmanager.elf
 TEMPLATE = app

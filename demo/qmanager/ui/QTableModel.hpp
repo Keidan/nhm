@@ -1,26 +1,15 @@
 /**
- *******************************************************************************
  * @file QTableModel.hpp
  * @author Keidan
- * @date 06/09/2016
- * @par Project nhm->qmanager
+ * @copyright GNU GENERAL PUBLIC LICENSE Version 3
  *
- * @par Copyright 2016 Keidan, all right reserved
- *
- *      This software is distributed in the hope that it will be useful, but
- *      WITHOUT ANY WARRANTY.
- *
- *      License summary : You can modify and redistribute the sources code and
- *      binaries. You can send me the bug-fix
- *
- *      Term of the license in in the file license.txt.
  *    _____
  *   /     \ _____    ____ _____     ____   ___________
  *  /  \ /  \\__  \  /    \\__  \   / ___\_/ __ \_  __  \
  * /    Y    \/ __ \|   |  \/ __ \_/ /_/  >  ___/|  | \/
  * \____|__  (____  /___|  (____  /\___  / \___  >__|
  *         \/     \/     \/     \//_____/      \/
- *******************************************************************************
+ *
  */
 #ifndef QTABLEMODEL_HPP
   #define QTABLEMODEL_HPP
@@ -31,36 +20,37 @@
   #include <QList>
   #include "../model/QNHMRule.hpp"
 
-  class QTableModel : public QAbstractTableModel {
-    
-    Q_OBJECT
+  class QTableModel : public QAbstractTableModel
+  {
+
+      Q_OBJECT
 
     public:
       QTableModel(QObject *parent=0);
 
       QTableModel(QList<QNHMRule*> list, QObject *parent=0);
 
-      int rowCount(const QModelIndex &parent) const;
+      auto rowCount(const QModelIndex &parent) const -> int;
 
-      int columnCount(const QModelIndex &parent) const;
+      auto columnCount(const QModelIndex &parent) const -> int;
 
-      QVariant data(const QModelIndex &index, int role) const;
+      auto data(const QModelIndex &index, int role) const -> QVariant;
 
-      QVariant headerData(int section, Qt::Orientation orientation, int role) const;
+      auto headerData(int section, Qt::Orientation orientation, int role) const -> QVariant;
 
-      Qt::ItemFlags flags(const QModelIndex &index) const;
+      auto flags(const QModelIndex &index) const -> Qt::ItemFlags;
 
-      bool setData(const QModelIndex &index, const QVariant &value, int role=Qt::EditRole);
+      auto setData(const QModelIndex &index, const QVariant &value, int role=Qt::EditRole) -> bool;
 
-      bool insertRows(int position, int rows, const QModelIndex &index=QModelIndex());
+      auto insertRows(int position, int rows, const QModelIndex &index=QModelIndex()) -> bool;
 
-      bool removeRows(int position, int rows, const QModelIndex &index=QModelIndex());
+      auto removeRows(int position, int rows, const QModelIndex &index=QModelIndex()) -> bool;
 
-      QList<QNHMRule*> getList();
+      auto getList() -> QList<QNHMRule*>;
 
-      QVariant getColumn(int row, int column) const;
+      auto getColumn(int row, int column) const -> QVariant;
 
-      void clear();
+      auto clear() -> void;
     private:
       QList<QNHMRule*> m_list;
   };

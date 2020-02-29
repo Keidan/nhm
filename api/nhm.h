@@ -1,40 +1,28 @@
 /**
-*******************************************************************************
-* @file nhm.h
-* @author Keidan
-* @par Project nhm
-* @copyright Copyright 2015 Keidan, all right reserved.
-* @par License:
-* This software is distributed in the hope that it will be useful, but WITHOUT
-* ANY WARRANTY.
-*
-* Licence summary :
-*    You can modify and redistribute the sources code and binaries.
-*    You can send me the bug-fix
-*
-* Term of the licence in in the file licence.txt.
-*
-*  _______          __                       __
-*  \      \   _____/  |___  _  _____________|  | __
-*  /   |   \_/ __ \   __\ \/ \/ /  _ \_  __ \  |/ /
-* /    |    \  ___/|  |  \     (  <_> )  | \/    <
-* \____|__  /\___  >__|   \/\_/ \____/|__|  |__|_ \
-*         \/     \/                              \/
-*   ___ ___                __
-*  /   |   \  ____   ____ |  | __
-* /    ~    \/  _ \ /  _ \|  |/ /
-* \    Y    (  <_> |  <_> )    <
-*  \___|_  / \____/ \____/|__|_ \
-*        \/                    \/
-*    _____             .___    .__
-*   /     \   ____   __| _/_ __|  |   ____
-*  /  \ /  \ /  _ \ / __ |  |  \  | _/ __ \
-* /    Y    (  <_> ) /_/ |  |  /  |_\  ___/
-* \____|__  /\____/\____ |____/|____/\___  >
-*         \/            \/               \/
-*
-*******************************************************************************
-*/
+ * @file nhm.h
+ * @author Keidan
+ * @copyright GNU GENERAL PUBLIC LICENSE Version 3
+ *
+ *  _______          __                       __
+ *  \      \   _____/  |___  _  _____________|  | __
+ *  /   |   \_/ __ \   __\ \/ \/ /  _ \_  __ \  |/ /
+ * /    |    \  ___/|  |  \     (  <_> )  | \/    <
+ * \____|__  /\___  >__|   \/\_/ \____/|__|  |__|_ \
+ *         \/     \/                              \/
+ *   ___ ___                __
+ *  /   |   \  ____   ____ |  | __
+ * /    ~    \/  _ \ /  _ \|  |/ /
+ * \    Y    (  <_> |  <_> )    <
+ *  \___|_  / \____/ \____/|__|_ \
+ *        \/                    \/
+ *    _____             .___    .__
+ *   /     \   ____   __| _/_ __|  |   ____
+ *  /  \ /  \ /  _ \ / __ |  |  \  | _/ __ \
+ * /    Y    (  <_> ) /_/ |  |  /  |_\  ___/
+ * \____|__  /\____/\____ |____/|____/\___  >
+ *         \/            \/               \/
+ *
+ */
 #ifndef __NHM_H__
 #define __NHM_H__
 
@@ -67,91 +55,82 @@ extern "C" {
  *****************************************************/
 
 /**
- * @def NHM_MAJOR_NUMBER
  * @brief The major device number.
  */
 #define NHM_MAJOR_NUMBER 100
 
 /**
- * @def NHM_DEVICE_NAME
- * @brief The device will appear at /dev/nhm using this value.
+ * @brief Using this value the device will appear in /dev/nhm.
  */
 #define NHM_DEVICE_NAME "nhm"
 
 /**
- * @def NHM_DEVICE_PATH
  * @brief The device path.
  */
-#define NHM_DEVICE_PATH "/dev/"NHM_DEVICE_NAME
+#define NHM_DEVICE_PATH "/dev/" NHM_DEVICE_NAME
 
 /**
- * @def NHM_CLASS_NAME
  * @brief The device class -- this is a character device driver.
  */
 #define NHM_CLASS_NAME  "nhm"
 
 /**
- * @def IFNAMSIZ
  * @brief The maximum length of the device name.
  */
 #ifndef IFNAMSIZ
-#define IFNAMSIZ        16
+  #define IFNAMSIZ      16
 #endif
 
 /**
- * @def IFALIASZ
  * @breif The maximum length of the device alias name.
  */
 #ifndef IFALIASZ
-#define IFALIASZ        256
+  #define IFALIASZ      256
 #endif
 
 /**
- * @def NHM_LEN_HW
  * @brief The length of the MAC address representation.
  */
-#define NHM_LEN_HW 6
+#define NHM_LEN_HW      6
 
 /**
- * @def NHM_LEN_IPv6
  * @brief The length of the IPv6 address representation.
  */
-#define NHM_LEN_IPv6 16
+#define NHM_LEN_IPv6    16
 
 /**
- * @def NHM_NULL_HW
  * @brief NULL or empty MAC address.
  */
-#define NHM_NULL_HW {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+#define NHM_NULL_HW     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
 
 /**
- * @def NHM_NULL_IPv6
  * @brief NULL or empty IPv6 address.
  */
-#define NHM_NULL_IPv6 {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
+#define NHM_NULL_IPv6   { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+                         0x00, 0x00, 0x00, 0x00 }
 
 /**
- * @def NHM_LENGTH
- * @brief The length of the structure nhm_s.
+ * @brief The length of the nhm_s structure.
  */
 #define NHM_LENGTH sizeof(struct nhm_s)
 
 
 /****************************************************
- * ________      _____________________    _________
- * \______ \    /  _  \__    ___/  _  \  /   _____/
- *  |    |  \  /  /_\  \|    | /  /_\  \ \_____  \
- *  |    `   \/    |    \    |/    |    \/	  \
- * /_______  /\____|__  /____|\____|__  /_______  /
- *         \/         \/              \/        \/
+ * ________      _____________________ 
+ * \______ \    /  _  \__    ___/  _  \
+ *  |    |  \  /  /_\  \|    | /  /_\  \
+ *  |    `   \/    |    \    |/    |    \
+ * /_______  /\____|__  /____|\____|__  /
+ *         \/         \/              \/
  *****************************************************/
 /**
- * @enum nhm_nf_type_te
  * @brief Netfilter types.
  *
- * Defines the behaviour of the netfilter stack when a packet is processed.
+ *Defines the behavior of the netfilter stack when a packet is processed.
  */
-typedef enum {
+typedef enum 
+{
   NHM_NF_TYPE_DROP = 0,                   /*!< Drop the packet; don't continue traversal. */
   NHM_NF_TYPE_ACCEPT,                     /*!< Continue traversal as normal. */
   NHM_NF_TYPE_STOLEN,                     /*!< I've taken over the packet; don't continue traversal. */
@@ -161,35 +140,36 @@ typedef enum {
 } nhm_nf_type_te;
 
 /**
- * @enum nhm_dir_te
  * @brief Rule direction.
  *
  * Defines the direction of the current rule.
  */
-typedef enum {
+typedef enum 
+{
   NHM_DIR_BOTH = 0,                       /*!< The rule is applied for the input and the output packets. */
   NHM_DIR_INPUT,                          /*!< The rule is applied for the input packets. */
   NHM_DIR_OUTPUT                          /*!< The rule is applied for the output packets. */
 } nhm_dir_te;
 
 /**
- * @struct nhm_s
  * @brief Rule representation.
  */
-struct nhm_s {
-    char           dev[IFNAMSIZ];         /*!< Network device name */
-    nhm_nf_type_te nf_type;               /*!< Netfilter policy. */
-    nhm_dir_te     dir;                   /*!< Packet direction */
-    unsigned char  hw[NHM_LEN_HW];        /*!< Hardware MAC address. */
-    unsigned int   ip4;                   /*!< IPv4 address. */
-    unsigned char  ip6[NHM_LEN_IPv6];     /*!< IPv6 address. */
-    unsigned short port[2];               /*!< Port value or range. */
-    unsigned short eth_proto;             /*!< Ethernet protocol ID */
-    unsigned short ip_proto;              /*!< IP protocol ID */
-    struct {
-        unsigned long   counter;          /*!< Simple counter to obtain the number of times the rule is applied.*/
-        struct timespec last;             /*!< Last time where the rule is applied. */
-    }              applied;               /*!< Informations when the rule is applied. */
+struct nhm_s 
+{
+  char           dev[IFNAMSIZ];           /*!< Network device name */
+  nhm_nf_type_te nf_type;                 /*!< Netfilter policy. */
+  nhm_dir_te     dir;                     /*!< Packet direction */
+  unsigned char  hw[NHM_LEN_HW];          /*!< Hardware MAC address. */
+  unsigned int   ip4;                     /*!< IPv4 address. */
+  unsigned char  ip6[NHM_LEN_IPv6];       /*!< IPv6 address. */
+  unsigned short port[2];                 /*!< Port value or range. */
+  unsigned short eth_proto;               /*!< Ethernet protocol ID */
+  unsigned short ip_proto;                /*!< IP protocol ID */
+  struct 
+  {
+    unsigned long   counter;              /*!< Simple counter to obtain the number of times the rule is applied.*/
+    struct timespec last;                 /*!< Last time where the rule is applied. */
+  }              applied;                 /*!< Informations when the rule is applied. */
 };
 
 /****************************************************
@@ -202,8 +182,7 @@ struct nhm_s {
  *****************************************************/
 
 /**
- * @def nhm_to_ipv4(n0, n1, n2, n3)
- * @brief Transform 4 unsigned chars to an unsigned int.
+ * @brief Transforms 4 unsigned characters into an unsigned int.
  * @param[in] n0 bits 0-8
  * @param[in] n1 bits 8-16
  * @param[in] n2 bits 16-24
@@ -213,32 +192,46 @@ struct nhm_s {
 #define nhm_to_ipv4(n0, n1, n2, n3) (((n3 & 0xFF) << 24) | ((n2 & 0xFF) << 16) | ((n1 & 0xFF) << 8) | (n0 & 0xFF))
 
 /**
- * @def nhm_from_ipv4(bytes, offset, value)
- * @brief Transform an unsigned int to an unsigned char array (4).
+ * @brief Test if the IPv4 address (unsigned int representation) corresponds to an IPv4 address (type any)
+ * @param[in] ip4 IPv4 to be tested.
+ * @return 1 if the address is considered to correspond to "any", 0 otherwise
+ */
+#define nhm_is_ipv4_any(ip4) (!!(ip4 == 0))
+
+/**
+ * @brief Transforms an unsigned int into an array of unsigned characters (4).
  * @param[out] bytes The output array.
  * @param[in] offset The possible bytes offset.
- * @param[in] value The value the transform.
+ * @param[in] value The value of transformation.
  */
 #define nhm_from_ipv4(bytes, offset, value) do {	\
     bytes[offset + 3] = ((value >> 24) & 0xFF);		\
     bytes[offset + 2] = ((value >> 16) & 0xFF);		\
     bytes[offset + 1] = ((value >> 8) & 0xFF);		\
-    bytes[offset] = (value & 0xFF);			\
+    bytes[offset] = (value & 0xFF);			          \
   } while(0)
 
 /**
- * @def nhm_is_same(n1, n2)
- * @brief Test if the first rule equals the second.
+ * @brief Test if the MAC address  corresponds to an MAC address (type any)
+ * @param[in] mac MAC to be tested (unsigned char * 6).
+ * @return 1 if the address is considered to correspond to "any", 0 otherwise
+ */
+#define nhm_is_mac_any(mac) (!!(mac[0] == 0 && mac[1] == 0 && \
+                                mac[2] == 0 && mac[3] == 0 && \
+                                mac[4] == 0 && mac[5] == 0))
+
+/**
+ * @brief Check if the first rule is equal to the second.
  * @param[in] n1 The first rule to test with the second rule.
  * @param[in] n2 The second rule to test with the first rule.
- * @return 1 if the rules are equals, 0 else.
+ * @return 1 if the rules are equal, 0 otherwise.
  */
 #define nhm_is_same(n1, n2) (memcmp((n1)->dev, (n2)->dev, IFNAMSIZ) == 0 \
-                 && memcmp((n1)->hw, (n2)->hw, NHM_LENGTH) == 0 \
+                 && memcmp((n1)->hw, (n2)->hw, NHM_LEN_HW) == 0 \
                  && memcmp((n1)->ip6, (n2)->ip6, NHM_LEN_IPv6) == 0 \
                  && (n1)->ip4 == (n2)->ip4			\
                  && memcmp((n1)->port, (n2)->port,		\
-                       2*sizeof(unsigned short)) == 0	\
+                       sizeof((n1)->port)) == 0	\
                  && (n1)->eth_proto == (n2)->eth_proto	\
                  && (n1)->ip_proto == (n2)->ip_proto)
 
@@ -253,44 +246,34 @@ struct nhm_s {
  *****************************************************/
 
 /**
- * @def NHM_IOCTL_ADD
- * @brief Adding a new entry pointed by the IOCTL argument.
+ * @brief Added a new entry pointed by the IOCTL argument.
  */
 #define NHM_IOCTL_ADD    _IOW(NHM_MAJOR_NUMBER, 0, struct nhm_s *)
 
 /**
- * @def NHM_IOCTL_DEL
- * @brief Removing an existing entry pointed by the IOCTL argument.
+ * @brief Deletes an existing entry pointed to by the IOCTL argument.
  */
 #define NHM_IOCTL_DEL    _IOW(NHM_MAJOR_NUMBER, 1, struct nhm_s *)
 
 /**
- * @def NHM_IOCTL_CLEAR
- * @brief Removing all entries.
+ * @brief Deletes all entries.
  */
 #define NHM_IOCTL_CLEAR  _IOR(NHM_MAJOR_NUMBER, 2, void *)
 
 /**
- * @def NHM_IOCTL_ZERO
- * @brief Changes the read index and places it to the head of the list.
+ * @brief Moves the index back to the top of the list.
  */
 #define NHM_IOCTL_ZERO   _IOR(NHM_MAJOR_NUMBER, 3, void *)
 
 /**
- * @def NHM_IOCTL_LENGTH
- * @brief Returns the number of items that the read function can return.
+ * @brief Returns the number of items that the playback function can return.
  */
 #define NHM_IOCTL_LENGTH _IOR(NHM_MAJOR_NUMBER, 4, int *)
 
 /**
- * @def NHM_IOCTL_NF_TYPE
- * @brief Changes the globale netfilter type to be apply by default.
+ * @brief Changes the global netfilter type to be applied by default.
  */
 #define NHM_IOCTL_NF_TYPE _IOW(NHM_MAJOR_NUMBER, 5, nhm_nf_type_te *)
-
-
-
-
 
 
 /*****************************************************
@@ -303,8 +286,7 @@ struct nhm_s {
  *****************************************************/
 
 /**
- * @def nhm_open()
- * @brief After this call an connection between the module and the user application will be opened.
+ * @brief After this call, a connection between the module and the user application will be opened.
  * @code
  * int fd;
  * ...
@@ -316,8 +298,7 @@ struct nhm_s {
 #define nhm_open()                 open(NHM_DEVICE_PATH, O_RDWR)
 
 /**
- * @def nhm_close(fd)
- * @brief After this call the connection between the module and the user application will be closed.
+ * @brief After this call, the connection between the module and the user application will be closed.
  * @code
  * int fd;
  * ...
@@ -330,8 +311,7 @@ struct nhm_s {
 #define nhm_close(fd)              close(fd)
 
 /**
- * @def nhm_get_rule(fd, r)
- * @brief Read a rule from the module
+ * @brief Reading a rule stored in the module
  * @code
  * struct nhm_s r;
  * int fd, length, ret, i;
@@ -346,14 +326,13 @@ struct nhm_s {
  * ...
  * @endcode
  * @param[in] fd The fd between the user application and the module.
- * @param[out] r The rule.
+ * @param[out] r The rule to read.
  * @return The return code of the read function (man read).
  */
 #define nhm_get_rule(fd, r)        read(fd, r, NHM_LENGTH)
 
 /**
- * @def nhm_init_rule(r)
- * @brief Initializes all the fields of the rule to 0
+ * @brief Reset all fields of the rule to 0
  * @code
  * struct nhm_s r;
  * ...
@@ -366,8 +345,7 @@ struct nhm_s {
 #define nhm_init_rule(r)           memset(r, 0, NHM_LENGTH)
 
 /**
- * @def nhm_add_rule(fd, r)
- * @brief After this call all packets which would correspond to the rule configuration will be treated.
+ * @brief After this call, all packets that match the rule configuration will be processed.
  * @code
  * struct nhm_s r;
  * int fd, ret;
@@ -380,14 +358,13 @@ struct nhm_s {
  * ...
  * @endcode
  * @param[in] fd The fd between the user application and the module.
- * @param[in] r The rule to add.
+ * @param[in] r The rule to be added.
  * @return The return code of the ioctl function (man ioctl).
  */
 #define nhm_add_rule(fd, r)        ioctl(fd, NHM_IOCTL_ADD, r)
 
 /**
- * @def nhm_del_rule(fd, r)
- * @brief After this call the rule will be removed.
+ * @brief After this call, the rule will be deleted.
  * @code
  * struct nhm_s r;
  * int fd, ret;
@@ -400,14 +377,13 @@ struct nhm_s {
  * ...
  * @endcode
  * @param[in] fd The fd between the user application and the module.
- * @param[in] r The rule to remove.
+ * @param[in] r The rule to be deleted.
  * @return The return code of the ioctl function (man ioctl).
  */
 #define nhm_del_rule(fd, r)        ioctl(fd, NHM_IOCTL_DEL, r)
 
 /**
- * @def nhm_clear_rules(fd)
- * @brief After this call all the rules will be removed.
+ * @brief After this call, all rules will be deleted.
  * @code
  * int fd, ret;
  * ...
@@ -420,8 +396,7 @@ struct nhm_s {
 #define nhm_clear_rules(fd)        ioctl(fd, NHM_IOCTL_CLEAR, NULL)
 
 /**
- * @def nhm_read_rewind(fd)
- * @brief After this call the read index will be reseted to the head of the list.
+ * @brief After this call, the index being read will be moved back to the top of the list.
  * @code
  * int fd, ret;
  * ...
@@ -434,8 +409,7 @@ struct nhm_s {
 #define nhm_read_rewind(fd)        ioctl(fd, NHM_IOCTL_ZERO, NULL)
 
 /**
- * @def nhm_rules_size(fd, length)
- * @brief After this call the length field contain the number of inserted elements.
+ * @brief After this call, the length field will contain the number of inserted elements.
  * @code
  * int fd, ret, length;
  * ...
@@ -443,20 +417,19 @@ struct nhm_s {
  * ...
  * @endcode
  * @param[in] fd The fd between the user application and the module.
- * @param[out] length The numbere of elements.
+ * @param[out] length The number of elements.
  * @return The return code of the ioctl function (man ioctl)
  */
 #define nhm_rules_size(fd, length) ioctl(fd, NHM_IOCTL_LENGTH, length)
 
 /**
- * @def nhm_set_netfilter_type(fd, type)
- * @brief After this call all the packets will be managed by default with the value of the type parameter.
+ * @brief After this call, all packets will be managed by default with the value of the type parameter.
  * @code
  * nhm_nf_type_te type = NHM_NF_TYPE_DROP; // drop all packets.
  * nhm_set_netfilter_type(fd, &type);
  * @endcode
  * @param[in] fd The fd between the user application and the module.
- * @param[in] type The behaviour type.
+ * @param[in] type The type of behavior.
  * @return The return code of the ioctl function (man ioctl).
  */
 #define nhm_set_netfilter_type(fd, type) ioctl(fd, NHM_IOCTL_NF_TYPE, type)
