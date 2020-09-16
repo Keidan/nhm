@@ -1,6 +1,5 @@
 # nhm
-[![Build Status](https://img.shields.io/travis/Keidan/nhm/master.svg?style=plastic)](https://travis-ci.com/Keidan/nhm)
-[![GitHub license](https://img.shields.io/github/license/Keidan/nhm.svg?style=plastic)](https://github.com/Keidan/nhm/blob/master/LICENSE)
+[![Build Status](https://travis-ci.com/Keidan/nhm.svg?branch=master)](https://travis-ci.com/Keidan/nhm)
 
 (GPL) LKM Netfilter Hook.
 
